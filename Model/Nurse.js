@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { validateImageUrl } = require('../Utils/validators');
 
 // Nurse Schema - extends with professional details
 const nurseSchema = new mongoose.Schema({
@@ -28,6 +29,26 @@ const nurseSchema = new mongoose.Schema({
       required: true
     }
   },
+  // ใบจบการศึกษา (รูปภาพ)
+  educationDocuments: [{
+    documentType: {
+      type: String,
+      enum: ['diploma', 'certificate', 'degree'],
+      required: true
+    },
+    documentUrl: {
+      type: String,
+      required: true,
+      validate: {
+        validator: validateImageUrl,
+        message: 'URL ต้องเป็นรูปภาพจริง ๆ (jpg, jpeg, png, gif, webp, bmp, svg, ico)'
+      }
+    },
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   // สาขาความเชี่ยวชาญ
   specialization: {
     type: String,
@@ -54,6 +75,26 @@ const nurseSchema = new mongoose.Schema({
       required: true
     }
   },
+  // เอกสารใบอนุญาติ (รูปภาพ)
+  licenseDocuments: [{
+    licenseType: {
+      type: String,
+      enum: ['nursing_license', 'specialist_license', 'training_certificate'],
+      required: true
+    },
+    documentUrl: {
+      type: String,
+      required: true,
+      validate: {
+        validator: validateImageUrl,
+        message: 'URL ต้องเป็นรูปภาพจริง ๆ (jpg, jpeg, png, gif, webp, bmp, svg, ico)'
+      }
+    },
+    uploadDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   // ประสบการณ์
   yearsOfExperience: {
     type: Number,
