@@ -1,0 +1,159 @@
+/* ล้างค่าพื้นฐานเพื่อให้จัดหน้าจอได้แม่นยำ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  font-family: "Kanit", "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+/* ส่วนรูปภาพฝั่งซ้าย (พื้นหลัง) */
+.login-image-section {
+  flex: 1.1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ส่วนฟอร์มฝั่งขวา: เปลี่ยนเป็นชิดขอบบน (flex-start) และไล่เฉดสี */
+.login-form-section {
+  flex: 0.9;
+  background: linear-gradient(180deg, #90e0ef 0%, #ffffff 51%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* ดันทุกอย่างขึ้นไปข้างบน */
+  padding: 20px 40px; /* ลด padding บนลงเพื่อให้เกือบติดขอบ */
+}
+
+/* ส่วนหัว: Logo และชื่อแอปขยายใหญ่ */
+.logo-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px; /* ระยะห่างจากขอบบนสุด */
+  margin-bottom: 50px;
+}
+
+.logo-badge {
+  background-color: rgba(178, 235, 242, 0.7); /* ฟ้าอ่อนโปร่งแสงนิดๆ */
+  padding: 15px 45px;
+  border-radius: 60px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.main-logo {
+  width: 90px; /* ขยายโลโก้ให้ใหญ่ขึ้น */
+  height: 90px;
+  background-color: white;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+.logo-text {
+  color: white;
+  font-size: 80px; /* ขยายชื่อ OldieCare ให้ใหญ่มาก */
+  font-family: "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 400;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.sub-text {
+  color: #546e7a;
+  font-size: 16px;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
+
+/* ส่วนของฟอร์ม Login */
+.login-form {
+  width: 100%;
+  max-width: 450px; /* ขยายความกว้างฟอร์มเล็กน้อยให้รับกับหัวข้อที่ใหญ่ขึ้น */
+  display: flex;
+  flex-direction: column;
+}
+
+.form-title {
+  color: #0277bd;
+  font-size: 42px; /* ขยายหัวข้อ Login ให้ใหญ่ขึ้น */
+  font-weight: 800;
+  margin-bottom: 40px;
+  text-align: left;
+  letter-spacing: -2px;
+}
+
+/* ช่องกรอกข้อมูลใหญ่ขึ้น */
+.form-input {
+  width: 100%;
+  height: 75px;
+  background-color: #e1f5fe;
+  border: none;
+  border-radius: 18px;
+  margin-bottom: 25px;
+  padding: 0 30px;
+  font-size: 22px;
+  color: #37474f;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  background-color: #ffffff;
+  box-shadow: 0 0 0 2px #4fc3f7;
+}
+
+/* ปุ่ม Login ใหญ่และดูเด่น */
+.btn-login {
+  width: 70%;
+  height: 65px;
+  background-color: #4fc3f7;
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-size: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(79, 195, 247, 0.4);
+  align-self: center;
+}
+
+.btn-login:hover {
+  background-color: #29b6f6;
+}
+
+.forgot-link {
+  text-align: center;
+  margin-top: 25px;
+  color: #455a64;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+/* รองรับมือถือ */
+@media (max-width: 900px) {
+  .login-image-section {
+    display: none;
+  }
+  .login-form-section {
+    flex: 1;
+    padding: 40px 20px;
+  }
+  .logo-text {
+    font-size: 60px;
+  }
+  .form-title {
+    font-size: 55px;
+  }
+}

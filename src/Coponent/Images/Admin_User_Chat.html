@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="Component.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-box"></div>
+      <div>Admin User</div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="noti-box"><i class="fa-solid fa-bell"></i></div>
+      <div class="profile-img"></div>
+      <div class="profile-info">
+        <div class="name">Admin Name</div>
+        <div class="role">Administrator</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="container">
+
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <div class="menu-item"><span class="menu-icon"><i class="fa-solid fa-chart-line"></i></span> Dashboard</div>
+      <div class="menu-item active">
+      <span class="menu-icon"><i class="fa-solid fa-people-group"></i></span> User</div>
+      <div class="menu-item"><span class="menu-icon"><i class="fa-solid fa-chart-bar"></i></span> Report</div>
+      <div class="menu-item"><span class="menu-icon"><i class="fa-solid fa-tasks"></i></span> Task</div>
+      <div class="menu-item"><span class="menu-icon"><i class="fa-solid fa-cog"></i></span> Setting</div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="message-layout">
+
+  <!-- Block Message -->
+  <div class="message-block">
+
+    <!-- Header -->
+    <div class="message-header">
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Messages</span>
+    </div>
+
+    <!-- Search -->
+    <div class="message-search">
+      <input type="text" placeholder="Search messages...">
+    </div>
+
+    <!-- Tabs -->
+    <div class="message-tabs">
+      <button class="tab active">All</button>
+      <button class="tab">Nurse</button>
+      <button class="tab">Relatives</button>
+    </div>
+
+    <!-- Message List -->
+    <div class="message-list">
+      <div class="message-item">Nurse A</div>
+      <div class="message-item">Relative B</div>
+      <div class="message-item">Older User C</div>
+    </div>
+
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-area">
+    <div class="chat-header">Chat</div>
+    <div class="chat-content">
+      Select a user to start chatting...
+    </div>
+    <div class="chat-input">
+      <input type="text" placeholder="Type a message...">
+    </div>
+  </div>
+
+</div>
+
+  </div>
+
+
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottombar">
+    
+    <div class="bottom-item">
+        <div><i class="fa-solid fa-chart-line"></i></div>
+        <div>Dashboard</div>
+    </div>
+    <div class="bottom-item active">
+      <div><i class="fa-solid fa-people-group"></i></div>
+      <div>User</div>
+    </div>
+    <div class="bottom-item">
+      <div><i class="fa-solid fa-chart-bar"></i></div>
+      <div>Report</div>
+    </div>
+    <div class="bottom-item">
+      <div><i class="fa-solid fa-tasks"></i></div>
+      <div>Task</div>
+    </div>
+    <div class="bottom-item">
+      <div><i class="fa-solid fa-cog"></i></div>
+      <div>Setting</div>
+    </div>
+  </div>
+
+  
+<script src="App.js"></script>
+  
+</body>
+</html>
