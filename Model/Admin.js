@@ -1,0 +1,25 @@
+const mongoose = require('mongoose');
+
+// Admin Schema - เก็บข้อมูลผู้ดูแลระบบพื้นฐาน
+const adminSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  }
+}, {
+  timestamps: true
+});
+
+const Admin = mongoose.model('Admin', adminSchema);
+
+module.exports = Admin;
