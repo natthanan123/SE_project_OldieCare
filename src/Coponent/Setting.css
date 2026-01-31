@@ -1,0 +1,391 @@
+/* --- โครงสร้างหลัก (Global) --- */
+.admin-container {
+  font-family: "Inter", sans-serif;
+  background-color: #f8fafc;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+/* --- Top Navbar --- */
+.top-navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-box {
+  background: #6366f1;
+  border-radius: 8px;
+  padding: 4px;
+}
+.logo-img {
+  width: 24px;
+  height: 24px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+.brand-text {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+/* --- Sidebar (ซ่อนเมื่ออยู่บนมือถือ) --- */
+.main-sidebar {
+  width: 240px;
+  background: white;
+  padding: 20px 10px;
+  border-right: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #64748b;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+.menu-item.active {
+  background: #6366f1;
+  color: white;
+}
+
+/* --- Main Panel --- */
+.main-panel {
+  flex: 1;
+  padding: 24px;
+  padding-bottom: 100px; /* เว้นที่ให้แถบล่าง */
+}
+
+/* --- Settings Specific Styles --- */
+.settings-header {
+  margin-bottom: 24px;
+}
+.settings-header h2 {
+  margin: 0;
+  color: #1e293b;
+}
+.settings-header p {
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.settings-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.settings-card h3 {
+  font-size: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1e293b;
+}
+
+/* Form & Toggles */
+.input-group {
+  margin-bottom: 16px;
+}
+.input-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-sizing: border-box; /* ป้องกัน input ล้นหน้าจอ */
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #3b82f6;
+}
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+/* --- Bottom Navigation (แก้ไขให้เต็มจอ 100%) --- */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0; /* ชิดซ้ายสุด */
+  right: 0; /* ชิดขวาสุด */
+  width: 100% !important;
+  height: 70px;
+  background-color: #ffffff !important;
+  border-top: 1px solid #e2e8f0;
+  display: flex !important;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 9999;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex: 1;
+}
+.nav-item.active {
+  color: #6366f1;
+}
+.nav-item i {
+  font-size: 20px;
+}
+.nav-item span {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .main-sidebar {
+    display: none;
+  }
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  .mobile-nav {
+    left: 0;
+    width: 100%;
+  }
+}
+/* --- Scroll Management --- */
+.main-panel {
+  flex: 1;
+  height: calc(100vh - 60px); /* หัก Navbar ออก */
+  overflow-y: auto; /* ทำให้เลื่อนแนวตั้งได้ */
+  padding: 24px;
+  background-color: #f8fafc;
+  padding-bottom: 100px; /* เผื่อที่ให้ Bottom Nav */
+}
+
+.settings-container {
+  max-width: 900px; /* จำกัดความกว้างเพื่อความสวยงาม */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- Card Styles --- */
+.settings-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.settings-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+/* --- Profile Section --- */
+.profile-content {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+.avatar-large {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-size: cover;
+  position: relative;
+  border: 4px solid #f1f5f9;
+}
+.camera-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #3b82f6;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border: 2px solid white;
+}
+
+/* --- Form Grid --- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+}
+.password-wrapper {
+  position: relative;
+}
+.password-wrapper i {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  cursor: pointer;
+}
+.btn-primary-wide {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+/* --- Info Boxes (Security) --- */
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.info-box.yellow {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+}
+.info-box.red {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+}
+.info-text {
+  flex: 1;
+}
+.info-icon {
+  font-size: 20px;
+}
+.yellow .info-icon {
+  color: #d97706;
+}
+.red .info-icon {
+  color: #dc2626;
+}
+
+.btn-small-yellow {
+  background: #fef3c7;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: #92400e;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-small-red {
+  background: #dc2626;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .profile-content {
+    flex-direction: column;
+    align-items: center;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}

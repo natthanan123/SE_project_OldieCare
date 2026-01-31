@@ -1,0 +1,11 @@
+/* ล้างค่าพื้นฐานให้ทุกหน้าในโปรเจกต์ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Kanit", sans-serif;
+  overflow: hidden; /* ป้องกันการเกิดแถบเลื่อนที่หน้าจอหลัก */
+}
