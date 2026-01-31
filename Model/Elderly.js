@@ -12,12 +12,6 @@ const elderlySchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  // เลขบัตรประชาชน
-  nationalId: {
-    type: String,
-    required: true,
-    unique: true
-  },
   // น้ำหนัก (กิโลกรัม)
   weight: {
     type: Number,
