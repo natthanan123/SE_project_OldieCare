@@ -193,6 +193,11 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running' });
 });
 
+// Test route
+app.get('/', (req, res) => {
+  res.send('hello world');
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
