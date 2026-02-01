@@ -66,7 +66,7 @@
   //   return scored.slice(0, maxResults).map(({ _score, ...rest }) => rest);
   // }
 
-*/
+
 
 // Export a stub recommending function to avoid runtime errors elsewhere.
 function recommendNurses() {
