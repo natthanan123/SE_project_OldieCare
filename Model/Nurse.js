@@ -1,115 +1,66 @@
 const mongoose = require('mongoose');
-const { validateImageUrl } = require('../Utils/validators');
+
 
 // Nurse Schema - extends with professional details
-const nurseSchema = new mongoose.Schema({
+  const nurseSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
+
   // การศึกษา
   education: {
-    degree: {
-      type: String,
-      required: true,
-      // เช่น "Bachelor", "Diploma", "Certificate"
-    },
-    major: {
-      type: String,
-      required: true,
-      // เช่น "Nursing Science", "Healthcare"
-    },
-    university: {
-      type: String,
-      required: true
-    },
-    graduationYear: {
-      type: Number,
-      required: true
-    }
+    degree: { type: String, required: true },
+    major: { type: String, required: true },
+    university: { type: String, required: true },
+    graduationYear: { type: Number, required: true }
   },
-  // ใบจบการศึกษา (รูปภาพ)
-  educationDocuments: [{
-    documentType: {
-      type: String,
-      enum: ['diploma', 'certificate', 'degree'],
-      required: true
-    },
-    documentUrl: {
-      type: String,
-      required: true,
-      validate: {
-        validator: validateImageUrl,
-        message: 'URL ต้องเป็นรูปภาพจริง ๆ (jpg, jpeg, png, gif, webp, bmp, svg, ico)'
-      }
-    },
-    uploadDate: {
-      type: Date,
-      default: Date.now
-    }
-  }],
+
   // สาขาความเชี่ยวชาญ
   specialization: {
     type: String,
-    required: true,
-    // เช่น "Elderly Care", "Palliative Care", "Critical Care", "General Nursing"
+    required: true
   },
-  // ทักษะและความสามารถ
-  skills: [{
-    skill: String,
-    level: {
-      type: String,
-      enum: ['beginner', 'intermediate', 'advanced', 'expert'],
-      default: 'intermediate'
-    }
-  }],
-  // ใบอนุญาต
-  license: {
-    number: {
-      type: String,
-      required: true
-    },
-    expiryDate: {
-      type: Date,
-      required: true
-    }
-  },
-  // เอกสารใบอนุญาติ (รูปภาพ)
-  licenseDocuments: [{
-    licenseType: {
-      type: String,
-      enum: ['nursing_license', 'specialist_license', 'training_certificate'],
-      required: true
-    },
-    documentUrl: {
-      type: String,
-      required: true,
-      validate: {
-        validator: validateImageUrl,
-        message: 'URL ต้องเป็นรูปภาพจริง ๆ (jpg, jpeg, png, gif, webp, bmp, svg, ico)'
+
+  // ทักษะ
+  skills: [
+    {
+      skill: String,
+      level: {
+        type: String,
+        enum: ['beginner', 'intermediate', 'advanced', 'expert'],
+        default: 'intermediate'
       }
-    },
-    uploadDate: {
-      type: Date,
-      default: Date.now
     }
-  }],
-  // ประสบการณ์
+  ],
+
+  // ใบอนุญาต (ข้อมูล)
+  license: {
+    number: { type: String, required: true },
+    expiryDate: { type: Date, required: true }
+  },
+
+  // ✅ รูปใบอนุญาต (1 รูป)
+  licenseImage: {
+    type: String // Cloudinary URL
+  },
+
+  // ✅ รูป certificate / ใบจบ (หลายรูป)
+  certificateImages: [
+    {
+      type: String // Cloudinary URL
+    }
+  ],
+
   yearsOfExperience: {
     type: Number,
     default: 0
   },
-  // เวลาเข้างาน
-  checkInTime: {
-    type: String,
-    // เช่น "08:00" หรือ "HH:MM"
-  },
-  // เวลาออกงาน
-  checkOutTime: {
-    type: String,
-    // เช่น "17:00" หรือ "HH:MM"
-  },
+
+  checkInTime: String,
+  checkOutTime: String,
+
   createdAt: {
     type: Date,
     default: Date.now

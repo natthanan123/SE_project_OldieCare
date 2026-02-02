@@ -1,64 +1,96 @@
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs').promises;
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// สร้าง directory สำหรับเก็บรูปถ้าไม่มี
-const uploadsDir = path.join(__dirname, '../uploads');
-const ensureUploadDir = async () => {
-  try {
-    await fs.mkdir(uploadsDir, { recursive: true });
-  } catch (err) {
-    console.error('Error creating uploads directory:', err);
-  }
-};
 
-// Resize รูปภาพและบันทึก
-const resizeAndSaveImage = async (buffer, filename) => {
-  try {
-    await ensureUploadDir();
-    
-    const filepath = path.join(uploadsDir, filename);
-    
-    // Resize รูปเป็น 300x300 px
-    await sharp(buffer)
-      .resize(300, 300, {
-        fit: 'cover',
-        position: 'center'
-      })
-      .toFormat('jpeg', { quality: 80 })
-      .toFile(filepath);
-    
-    // Return URL path ที่จะเก็บใน database
-    return `/uploads/${filename}`;
-  } catch (err) {
-    console.error('Error resizing image:', err);
-    throw err;
-  }
-};
-
-// ลบรูปเก่า
-const deleteImage = async (filepath) => {
-  try {
-    if (filepath) {
-      const fullPath = path.join(__dirname, '..', filepath);
-      await fs.unlink(fullPath);
-    }
-  } catch (err) {
-    console.error('Error deleting image:', err);
-  }
-};
-
-// สร้างชื่อไฟล์ที่ไม่ซ้ำ
 const generateFilename = (email) => {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(7);
-  const cleanEmail = email.replace(/[^a-z0-9]/g, '');
-  return `${cleanEmail}-${timestamp}-${randomStr}.jpg`;
+  const cleanEmail = email.replace(/[^a-z0-9]/gi, '');
+  return `${cleanEmail}-${timestamp}-${randomStr}`;
 };
 
+// ================= Cloudinary config =================
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// ================= File filter (เช็คว่าเป็นรูปจริง) =================
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true); // ผ่าน
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// ================= Multer storage (Cloudinary) =================
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'uploads',
+      format: 'jpg', // บังคับเป็น jpg
+      public_id: generateFilename(req.body.email || 'user'),
+      transformation: [
+        { width: 500, height: 500, crop: 'fill' }
+      ]
+    };
+  }
+});
+
+// ================= Multer upload =================
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
+
+// ================= Controller =================
+const uploadImages = async (req, res) => {
+  try {
+    const result = {};
+
+    if (req.files.licenseImage) {
+      result.licenseImage = req.files.licenseImage[0].path;
+    }
+
+    if (req.files.certificateImages) {
+      result.certificateImages = req.files.certificateImages.map(file => file.path);
+    }
+    
+    if (req.files.profileImage) {
+    result.profileImage = req.files.profileImage[0].path;
+    }
+
+    res.json({
+      message: 'Upload success',
+      data: result
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// ================= Delete Image =================
+const deleteImage = async (imageUrl) => {
+  if (!imageUrl) return;
+
+  const publicId = imageUrl.split('/').pop().split('.')[0];
+  await cloudinary.uploader.destroy(`uploads/${publicId}`);
+};
+
+// ================= Generate filename =================
+
+
 module.exports = {
-  resizeAndSaveImage,
-  deleteImage,
-  generateFilename,
-  uploadsDir
+  upload,
+  uploadImages,
+  deleteImage
 };

@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
-const { validateImageUrl, validatePassword } = require('../Utils/validators');
+const mongoose = require('mongoose');/*
 const { hashPassword, comparePassword } = require('../Utils/passwordHelper');
-
+*/
 // Base User Schema
 const userSchema = new mongoose.Schema({
   name: {
@@ -21,7 +20,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['nurse', 'relative', 'elderly'],
     required: true
-  },
+  },/*
   password: {
     type: String,
     required: true,
@@ -29,21 +28,17 @@ const userSchema = new mongoose.Schema({
       validator: validatePassword,
       message: 'รหัสผ่านต้อง: ≥8 ตัว, มีตัวใหญ่ (A-Z), มีตัวเลข (0-9), มีสัญลักษณ์ (!@#$%^&* ฯลฯ)'
     }
-  },
+  },*/
   profileImage: {
     type: String,
     default: null,
-    validate: {
-      validator: validateImageUrl,
-      message: 'URL ต้องเป็นรูปภาพจริง ๆ (jpg, jpeg, png, gif, webp, bmp, svg, ico)'
-    }
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
-
+/*
 // Hash password ก่อน save
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -54,12 +49,13 @@ userSchema.pre('save', async function(next) {
   } catch (err) {
     next(err);
   }
-});
+});*/
 
+/*
 // Method เปรียบเทียบ password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await comparePassword(candidatePassword, this.password);
-};
+};*/
 
 const User = mongoose.model('User', userSchema);
 
