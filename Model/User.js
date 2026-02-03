@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');/*
 const { hashPassword, comparePassword } = require('../Utils/passwordHelper');
+const { validatePassword } = require('../Utils/validators');
 */
 // Base User Schema
 const userSchema = new mongoose.Schema({
@@ -24,6 +25,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+    select: false,
     validate: {
       validator: validatePassword,
       message: 'รหัสผ่านต้อง: ≥8 ตัว, มีตัวใหญ่ (A-Z), มีตัวเลข (0-9), มีสัญลักษณ์ (!@#$%^&* ฯลฯ)'
@@ -49,14 +51,14 @@ userSchema.pre('save', async function(next) {
   } catch (err) {
     next(err);
   }
-});*/
+});
 
-/*
+
 // Method เปรียบเทียบ password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await comparePassword(candidatePassword, this.password);
-};*/
-
+};
+*/
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

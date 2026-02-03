@@ -81,7 +81,7 @@ app.post(
   ]),
   async (req, res) => {
     try {
-      const { name, email, phone, specialization, yearsOfExperience } = req.body;
+      const { name, email, phone, password, specialization, yearsOfExperience } = req.body;
 
       const education = JSON.parse(req.body.education);
       const skills = JSON.parse(req.body.skills);
@@ -93,7 +93,7 @@ app.post(
         email,
         phone,
         role: 'nurse',
-        /* password */
+        password,
         profileImage: req.files.profileImage?.[0]?.path 
       });
 
@@ -116,9 +116,12 @@ app.post(
 
       const savedNurse = await nurse.save();
 
+      const userObj = savedUser.toObject();
+      delete userObj.password;
+
       res.status(201).json({
         message: 'Nurse created successfully',
-        user: savedUser,
+        user: userObj,
         nurse: savedNurse
       });
 
@@ -144,6 +147,7 @@ app.post(
         name,
         email,
         phone,
+        password,
         elderlyId,
         relationship,
         relationshipDetail,
@@ -155,6 +159,7 @@ app.post(
         name,
         email,
         phone,
+        password,
         role: 'relative',
         profileImage: req.files.profileImage?.[0]?.path || null
       });
@@ -172,9 +177,12 @@ app.post(
 
       const savedRelative = await relative.save();
 
+      const userObj = savedUser.toObject();
+      delete userObj.password;
+
       res.status(201).json({
         message: 'Relative created successfully',
-        user: savedUser,
+        user: userObj,
         relative: savedRelative
       });
 
@@ -235,9 +243,12 @@ app.post(
 
       const savedElderly = await elderly.save();
 
+      const userObj = savedUser.toObject();
+      delete userObj.password;
+
       res.status(201).json({
         message: 'Elderly person created successfully',
-        user: savedUser,
+        user: userObj,
         elderly: savedElderly
       });
 
@@ -252,9 +263,121 @@ app.post(
 
 
 // Routes - ดึงข้อมูล
-
+/*
 // ดึงข้อมูล Nurse ทั้งหมด
 app.get('/api/nurses', async (req, res) => {
+  try {
+    const nurses = await Nurse.find().populate('userId' , '-password');
+
+    if (!nurses || nurses.length === 0) {
+      return res.status(404).json({ message: 'No nurses found' });
+    }
+
+    res.status(200).json(nurses);
+  } catch (error) {
+    console.error('GET /api/nurses error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+// ดึงข้อมูล Nurse คนหนึ่ง
+app.get('/api/nurses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ เช็คว่า id เป็น ObjectId ไหม
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid nurse id' });
+    }
+
+    const nurse = await Nurse.findById(id).populate('userId', '-password');
+
+    // ✅ ถ้าไม่เจอ
+    if (!nurse) {
+      return res.status(404).json({ message: 'Nurse not found' });
+    }
+
+    res.status(200).json(nurse);
+  } catch (error) {
+    console.error('GET /api/nurses/:id error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ดึงข้อมูล Elderly ทั้งหมด
+app.get('/api/elderly', async (req, res) => {
+  try {
+    const elderly = await Elderly.find()
+      .populate('userId', '-password')          // เอาข้อมูล User (ชื่อ, profileImage, email)
+      .populate('assignedNurse');  // เอาข้อมูล Nurse
+
+    res.json(elderly);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// ดึงข้อมูล Elderly คนหนึ่ง
+app.get('/api/elderly/:id', async (req, res) => {
+  try {
+    const elderly = await Elderly.findById(req.params.id)
+      .populate('userId', '-password')
+      .populate('assignedNurse');
+
+    if (!elderly) {
+      return res.status(404).json({ message: 'Elderly not found' });
+    }
+
+    res.json(elderly);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// ดึงข้อมูล Relatives คนหนึ่ง
+app.get('/api/relatives', async (req, res) => {
+  try {
+    const relatives = await Relative.find()
+      .populate('userId', '-password')
+      .populate('elderlyId');
+
+    res.json(relatives);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+// ดึงข้อมูล Relatives ของ Elderly คนหนึ่ง
+app.get('/api/elderly/:elderlyId/relatives', async (req, res) => {
+  try {
+    const relatives = await Relative.find({ elderlyId: req.params.elderlyId })
+      .populate('userId', '-password')
+      .populate('elderlyId');
+
+    res.json(relatives);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+//ดึงข้อมูล Relative คนหนึ่ง
+app.get('/api/relatives/:id', async (req, res) => {
+  try {
+    const relative = await Relative.findById(req.params.id)
+      .populate('userId', '-password')
+      .populate('elderlyId');
+
+    if (!relative) {
+      return res.status(404).json({ message: 'Relative not found' });
+    }
+
+    res.json(relative);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+*/
+
+//test เดี๋ยวลบ
+app.get('/api/users/nurses', async (req, res) => {
   try {
     const nurses = await Nurse.find().populate('userId');
 
@@ -269,7 +392,7 @@ app.get('/api/nurses', async (req, res) => {
   }
 });
 // ดึงข้อมูล Nurse คนหนึ่ง
-app.get('/api/nurses/:id', async (req, res) => {
+app.get('/api/users/nurses/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -293,7 +416,7 @@ app.get('/api/nurses/:id', async (req, res) => {
 });
 
 // ดึงข้อมูล Elderly ทั้งหมด
-app.get('/api/elderly', async (req, res) => {
+app.get('/api/users/elderly', async (req, res) => {
   try {
     const elderly = await Elderly.find()
       .populate('userId')          // เอาข้อมูล User (ชื่อ, profileImage, email)
@@ -305,7 +428,7 @@ app.get('/api/elderly', async (req, res) => {
   }
 });
 // ดึงข้อมูล Elderly คนหนึ่ง
-app.get('/api/elderly/:id', async (req, res) => {
+app.get('/api/users/elderly/:id', async (req, res) => {
   try {
     const elderly = await Elderly.findById(req.params.id)
       .populate('userId')
@@ -323,7 +446,7 @@ app.get('/api/elderly/:id', async (req, res) => {
 
 
 // ดึงข้อมูล Relatives คนหนึ่ง
-app.get('/api/relatives', async (req, res) => {
+app.get('/api/users/relatives', async (req, res) => {
   try {
     const relatives = await Relative.find()
       .populate('userId')
@@ -335,7 +458,7 @@ app.get('/api/relatives', async (req, res) => {
   }
 });
 // ดึงข้อมูล Relatives ของ Elderly คนหนึ่ง
-app.get('/api/elderly/:elderlyId/relatives', async (req, res) => {
+app.get('/api/users/elderly/:elderlyId/relatives', async (req, res) => {
   try {
     const relatives = await Relative.find({ elderlyId: req.params.elderlyId })
       .populate('userId')
@@ -348,7 +471,7 @@ app.get('/api/elderly/:elderlyId/relatives', async (req, res) => {
 });
 
 //ดึงข้อมูล Relative คนหนึ่ง
-app.get('/api/relatives/:id', async (req, res) => {
+app.get('/api/users/relatives/:id', async (req, res) => {
   try {
     const relative = await Relative.findById(req.params.id)
       .populate('userId')
@@ -364,7 +487,6 @@ app.get('/api/relatives/:id', async (req, res) => {
   }
 });
 
-
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running' });
@@ -374,8 +496,10 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.send('hello world');
 });
-
-
+/*
+const authRoutes = require('./routes/auth');
+app.use('/api', authRoutes);
+*/
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError || err.message.includes('Only image')) {
@@ -385,6 +509,8 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).json({ error: 'Server error' });
 });
+
+
 
 
 // Start server
