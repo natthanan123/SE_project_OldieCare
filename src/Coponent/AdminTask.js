@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 import logoImg from "./Images/logo-oldie.png";
 //import { Link } from 'react-router-dom';
 import './Component.css'; // ไฟล์ CSS หลัก (Topbar, Sidebar, Bottombar)

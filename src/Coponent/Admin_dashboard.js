@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 import logoImg from "./Images/logo-oldie.png";
 import './Component.css'; // ตรวจสอบชื่อไฟล์และ Path ของ CSS ให้ถูกต้อง
+
 
 const Dashboard = () => {
   return (

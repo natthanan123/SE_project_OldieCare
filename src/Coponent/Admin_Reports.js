@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 import logoImg from "./Images/logo-oldie.png";
 import './Component.css';
 // หมายเหตุ: คุณสามารถแยก CSS ของ Report ไปไว้ใน Report.css หรือเขียน inline แบบตัวอย่างนี้ก็ได้ครับ

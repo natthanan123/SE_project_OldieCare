@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
 import "../Coponent/Login.css"; // ออกไป 1 ชั้นเพื่อหาไฟล์ App.css
 import bgImage from "./Images/bg-oldie.jpg";
 import logoImg from "./Images/logo-oldie.png";

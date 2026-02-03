@@ -1154,3 +1154,162 @@ input:checked + .slider:before {
     padding-bottom: 90px;
   }
 }
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
+}
+
+/* Modal Box */
+.modal-content {
+  background: white;
+  width: 380px;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.close-x { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+.modal-body label { display: block; margin-bottom: 8px; font-weight: bold; }
+.modal-body input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+.input-error { border-color: #ff4d4d; }
+.error-text { color: #ff4d4d; font-size: 12px; margin-top: 5px; display: block; }
+
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 25px; }
+.btn-cancel { background: none; border: none; color: #666; cursor: pointer; }
+.btn-create { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+
+/* รายชื่อ Profile ที่ถูกสร้าง */
+.created-profiles-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+}
+
+.user-profile-row {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.user-profile-row:hover { background: #eef4ff; transform: translateY(-2px); }
+.mini-avatar { width: 35px; height: 35px; border-radius: 50%; background: #ccc; margin-right: 12px; }
+.user-info-text { display: flex; flex-direction: column; }
+.u-name { font-weight: bold; font-size: 14px; }
+.u-role { font-size: 12px; color: #666; }
+/* การจัดวาง Form ใน Popup */
+.form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.scrollable-modal {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+/* ปรับแต่ง Scrollbar เล็กน้อย */
+.scrollable-modal::-webkit-scrollbar {
+  width: 5px;
+}
+.scrollable-modal::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+.btn-delete-item:hover {
+  color: #b71c1c !important;
+  transform: scale(1.1);
+  transition: all 0.2s ease;
+}
+/* ขยายความกว้าง Modal */
+.modal-content {
+    max-width: 800px; /* จากเดิมส่วนใหญ่อยู่ที่ 500-600px */
+    width: 95%;
+    max-height: 90vh; /* ให้สูงเกือบเต็มหน้าจอ */
+    display: flex;
+    flex-direction: column;
+}
+
+/* ปรับให้ส่วน Body เลื่อน Scroll ได้ดีขึ้น */
+.scrollable-modal {
+    overflow-y: auto;
+    padding-right: 10px; /* กันโดน scrollbar บัง */
+}
+
+/* ปรับสีหัวข้อแยกส่วน */
+.section-title {
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #f0f0f0;
+    color: #2563eb;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}/* Sidebar Active State */
+
+/* --- สำหรับ Sidebar (Desktop) --- */
+.sidebar .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #64748b; /* สีเทาปกติ */
+    border-left: 4px solid transparent; /* เตรียมเส้นขอบซ้ายไว้ */
+}
+
+/* เมื่อเมนู Active */
+.sidebar .menu-item.active {
+    background-color: #eff6ff; /* สีพื้นหลังฟ้าอ่อน */
+    color: #2563eb;           /* สีข้อความน้ำเงิน */
+    border-left: 4px solid #2563eb; /* เส้นขอบหนาด้านน้ำเงิน */
+    font-weight: 600;
+}
+
+.sidebar .menu-item.active .menu-icon i {
+    color: #2563eb; /* เปลี่ยนสีไอคอนเป็นน้ำเงิน */
+}
+
+/* --- สำหรับ Bottom Bar (Mobile) --- */
+.bottombar .bottom-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    color: #94a3b8; /* สีปกติ */
+    font-size: 12px;
+}
+
+/* เมื่อเมนู Active บนมือถือ */
+.bottombar .bottom-item.active {
+    color: #2563eb; /* เปลี่ยนเป็นสีน้ำเงิน */
+}
+
+.bottombar .bottom-item.active i {
+    transform: scale(1.1); /* ขยายไอคอนเล็กน้อย */
+}
