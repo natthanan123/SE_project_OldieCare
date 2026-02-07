@@ -248,8 +248,6 @@ app.post(
         email,
         phone,
         dateOfBirth,
-        nationalId,
-        allergies,
         assignedNurse
       } = req.body;
 
