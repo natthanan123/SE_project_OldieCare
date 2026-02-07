@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const multer = require('multer');
-const { recommendNurses } = require('./recommendNurses');
+const { recommendNurses } = require('./test/recommender');
 const { upload } = require('./Utils/imageHandler'); // 👈 สำหรับ upload รูป
 
 const app = express();
