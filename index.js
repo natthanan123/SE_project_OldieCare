@@ -15,6 +15,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const safeParse = (data, defaultValue) => {
+  try {
+    if (!data || data === "undefined") return defaultValue;
+    return typeof data === 'string' ? JSON.parse(data) : data;
+  } catch (e) {
+    console.error("JSON Parse Error:", e);
+    return defaultValue;
+  }
+};
+
+
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -81,11 +92,15 @@ app.post(
   ]),
   async (req, res) => {
     try {
+      // ✅ ดึง password จากคำขอ (จะถูกแฮชใน Model ก่อนบันทึก)
+      /*
       const { name, email, phone, password, specialization, yearsOfExperience } = req.body;
+      */
+      const { name, email, phone, specialization, yearsOfExperience } = req.body;
 
-      const education = JSON.parse(req.body.education);
-      const skills = JSON.parse(req.body.skills);
-      const license = JSON.parse(req.body.license);
+      const education = safeParse(req.body.education, { degree: "", major: "", university: "", graduationYear: 0 });
+      const skills = safeParse(req.body.skills, []);
+      const license = safeParse(req.body.license, { number: "", expiryDate: new Date() });
 
       // สร้าง User
       const user = new User({
@@ -93,7 +108,7 @@ app.post(
         email,
         phone,
         role: 'nurse',
-        password,
+        /* password, */ // 🔒 ปิด password ชั่วคราว
         profileImage: req.files.profileImage?.[0]?.path 
       });
 
@@ -103,11 +118,10 @@ app.post(
       const nurse = new Nurse({
         userId: savedUser._id,
         education,
-        specialization: req.body.specialization,
+        specialization: specialization || "-", // ✨ [CHANGED] ป้องกันค่าว่าง
         skills,
         license,
-        yearsOfExperience: req.body.yearsOfExperience,
-
+        yearsOfExperience: Number(yearsOfExperience) || 0, // ✨ [CHANGED] บังคับเป็น Number
         licenseImage: req.files.licenseImage?.[0]?.path,
         certificateImages: req.files.certificateImages
           ? req.files.certificateImages.map(f => f.path)
@@ -117,7 +131,7 @@ app.post(
       const savedNurse = await nurse.save();
 
       const userObj = savedUser.toObject();
-      delete userObj.password;
+      /* delete userObj.password; */ // 🔐 ปิด password ชั่วคราว
 
       res.status(201).json({
         message: 'Nurse created successfully',
@@ -126,6 +140,7 @@ app.post(
       });
 
     } catch (error) {
+      console.error("Create Nurse Error:", error); // ✨ [CHANGED] เพิ่ม Log เพื่อให้ Debug ง่ายขึ้น
       res.status(500).json({
         message: 'Error creating nurse',
         error: error.message
@@ -143,11 +158,23 @@ app.post(
   ]),
   async (req, res) => {
     try {
+      // ✅ ดึง password จากคำขอ (จะถูกแฮชใน Model ก่อนบันทึก)
+      /*
       const {
         name,
         email,
         phone,
         password,
+        elderlyId,
+        relationship,
+        relationshipDetail,
+        emergencyContact
+      } = req.body;
+      */
+      const {
+        name,
+        email,
+        phone,
         elderlyId,
         relationship,
         relationshipDetail,
@@ -159,7 +186,7 @@ app.post(
         name,
         email,
         phone,
-        password,
+        /* password, */ // 🔒 ปิด password ชั่วคราว
         role: 'relative',
         profileImage: req.files.profileImage?.[0]?.path || null
       });
@@ -170,15 +197,15 @@ app.post(
       const relative = new Relative({
         userId: savedUser._id,
         elderlyId,
-        relationship,
-        relationshipDetail,
-        emergencyContact
+        relationship: relationship || "child",
+        relationshipDetail: relationshipDetail || "",
+        emergencyContact: emergencyContact === 'true' || emergencyContact === true // ✨ [CHANGED] จัดการ boolean จาก FormData
       });
 
       const savedRelative = await relative.save();
 
       const userObj = savedUser.toObject();
-      delete userObj.password;
+      /* delete userObj.password; */ // 🔐 ปิด password ชั่วคราว
 
       res.status(201).json({
         message: 'Relative created successfully',
@@ -203,6 +230,8 @@ app.post(
   ]),
   async (req, res) => {
     try {
+      // ✅ ดึง password จากคำขอ (จะถูกแฮชใน Model ก่อนบันทึก)
+      /*
       const {
         name,
         email,
@@ -210,12 +239,25 @@ app.post(
         password,
         dateOfBirth,
         nationalId,
-        address,
-        medicalConditions,
-        medications,
         allergies,
         assignedNurse
       } = req.body;
+      */
+      const {
+        name,
+        email,
+        phone,
+        dateOfBirth,
+        nationalId,
+        allergies,
+        assignedNurse
+      } = req.body;
+
+      const address = safeParse(req.body.address, { street: "", district: "", province: "", postalCode: "" });
+      const medicalConditions = safeParse(req.body.medicalConditions, []);
+      const medications = safeParse(req.body.medications, []);
+      const foodAllergies = safeParse(req.body.foodAllergies, []); // ✨ [CHANGED] เพิ่มเพื่อให้ตรงกับ Model
+      const diseaseAllergies = safeParse(req.body.diseaseAllergies, []); // ✨ [CHANGED] เพิ่มเพื่อให้ตรงกับ Model
 
       // ✅ สร้าง User พร้อม profileImage
       const user = new User({
@@ -223,7 +265,7 @@ app.post(
         email,
         phone,
         role: 'elderly',
-        password,
+        /* password, */ // 🔒 ปิด password ชั่วคราว
         profileImage: req.files.profileImage?.[0]?.path || null
       });
 
@@ -232,19 +274,21 @@ app.post(
       // สร้าง Elderly details
       const elderly = new Elderly({
         userId: savedUser._id,
-        dateOfBirth,
-        nationalId,
+        dateOfBirth: dateOfBirth || new Date(),
+        weight: Number(req.body.weight) || 0, // ✨ [CHANGED] รับค่า weight
+        height: Number(req.body.height) || 0, // ✨ [CHANGED] รับค่า height
         address,
         medicalConditions,
         medications,
-        allergies,
-        assignedNurse
+        foodAllergies, // ✨ [CHANGED]
+        diseaseAllergies, // ✨ [CHANGED]
+        assignedNurse: assignedNurse || null
       });
 
       const savedElderly = await elderly.save();
 
       const userObj = savedUser.toObject();
-      delete userObj.password;
+      /* delete userObj.password; */ // 🔐 ปิด password ชั่วคราว
 
       res.status(201).json({
         message: 'Elderly person created successfully',
