@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 const multer = require('multer');
-
+const { recommendNurses } = require('./recommendNurses');
 const { upload } = require('./Utils/imageHandler'); // 👈 สำหรับ upload รูป
 
 const app = express();
@@ -304,121 +304,8 @@ app.post(
 );
 
 
-// Routes - ดึงข้อมูล
-/*
+// ==================== READ ROUTES ====================
 // ดึงข้อมูล Nurse ทั้งหมด
-app.get('/api/nurses', async (req, res) => {
-  try {
-    const nurses = await Nurse.find().populate('userId' , '-password');
-
-    if (!nurses || nurses.length === 0) {
-      return res.status(404).json({ message: 'No nurses found' });
-    }
-
-    res.status(200).json(nurses);
-  } catch (error) {
-    console.error('GET /api/nurses error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-// ดึงข้อมูล Nurse คนหนึ่ง
-app.get('/api/nurses/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // ✅ เช็คว่า id เป็น ObjectId ไหม
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid nurse id' });
-    }
-
-    const nurse = await Nurse.findById(id).populate('userId', '-password');
-
-    // ✅ ถ้าไม่เจอ
-    if (!nurse) {
-      return res.status(404).json({ message: 'Nurse not found' });
-    }
-
-    res.status(200).json(nurse);
-  } catch (error) {
-    console.error('GET /api/nurses/:id error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ดึงข้อมูล Elderly ทั้งหมด
-app.get('/api/elderly', async (req, res) => {
-  try {
-    const elderly = await Elderly.find()
-      .populate('userId', '-password')          // เอาข้อมูล User (ชื่อ, profileImage, email)
-      .populate('assignedNurse');  // เอาข้อมูล Nurse
-
-    res.json(elderly);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-// ดึงข้อมูล Elderly คนหนึ่ง
-app.get('/api/elderly/:id', async (req, res) => {
-  try {
-    const elderly = await Elderly.findById(req.params.id)
-      .populate('userId', '-password')
-      .populate('assignedNurse');
-
-    if (!elderly) {
-      return res.status(404).json({ message: 'Elderly not found' });
-    }
-
-    res.json(elderly);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-
-// ดึงข้อมูล Relatives คนหนึ่ง
-app.get('/api/relatives', async (req, res) => {
-  try {
-    const relatives = await Relative.find()
-      .populate('userId', '-password')
-      .populate('elderlyId');
-
-    res.json(relatives);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-// ดึงข้อมูล Relatives ของ Elderly คนหนึ่ง
-app.get('/api/elderly/:elderlyId/relatives', async (req, res) => {
-  try {
-    const relatives = await Relative.find({ elderlyId: req.params.elderlyId })
-      .populate('userId', '-password')
-      .populate('elderlyId');
-
-    res.json(relatives);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//ดึงข้อมูล Relative คนหนึ่ง
-app.get('/api/relatives/:id', async (req, res) => {
-  try {
-    const relative = await Relative.findById(req.params.id)
-      .populate('userId', '-password')
-      .populate('elderlyId');
-
-    if (!relative) {
-      return res.status(404).json({ message: 'Relative not found' });
-    }
-
-    res.json(relative);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-*/
-
-//test เดี๋ยวลบ
 app.get('/api/users/nurses', async (req, res) => {
   try {
     const nurses = await Nurse.find().populate('userId');
@@ -529,6 +416,19 @@ app.get('/api/users/relatives/:id', async (req, res) => {
   }
 });
 
+// ดึงรายชื่อพยาบาลที่แนะนำ
+app.get('/api/recommend-nurses', async (req, res) => {
+  try {
+    const nurses = await Nurse.find().populate('userId');
+
+    const result = recommendNurses(nurses); // 👈 ใช้ function ที่คุณเขียน
+
+    res.status(200).json(result); // 👈 ส่งให้ frontend
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 // ==================== UPDATE ROUTES ====================
 
 // ✏️ อัพเดท Nurse (สำหรับ settings)
@@ -684,6 +584,54 @@ app.put('/api/users/relatives/:id',
     }
   }
 );
+
+app.put('/api/elderly/assign-nurse', async (req, res) => {
+  try {
+    const { elderlyId, nurseId } = req.body;
+
+    const elderly = await Elderly.findById(elderlyId);
+    if (!elderly) return res.status(404).json({ message: 'Elderly not found' });
+
+    const newNurse = await Nurse.findById(nurseId);
+    if (!newNurse) return res.status(404).json({ message: 'Nurse not found' });
+
+    // ❗ ถ้ามีพยาบาลอยู่แล้ว → เอาออกก่อน
+    if (elderly.assignedNurse) {
+      const oldNurse = await Nurse.findById(elderly.assignedNurse);
+
+      if (oldNurse) {
+        oldNurse.patientCount = Math.max(0, oldNurse.patientCount - 1);
+        await oldNurse.save();
+      }
+
+      // reset ค่าเหมือนตอนเริ่มต้น
+      elderly.assignedNurse = null;
+    }
+
+    // ❗ เช็ค nurse ใหม่ว่าเต็มไหม
+    const MAX_PATIENTS = 3;
+    if (newNurse.patientCount >= MAX_PATIENTS) {
+      return res.status(400).json({ message: 'Nurse is full' });
+    }
+
+    // ✅ assign nurse ใหม่
+    elderly.assignedNurse = nurseId;
+    await elderly.save();
+
+    newNurse.patientCount = (newNurse.patientCount || 0) + 1;
+    await newNurse.save();
+
+    res.status(200).json({
+      message: 'Reassigned nurse successfully',
+      elderly
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // ==================== DELETE ROUTES ====================
 

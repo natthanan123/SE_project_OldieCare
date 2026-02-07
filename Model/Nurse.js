@@ -58,6 +58,12 @@ const mongoose = require('mongoose');
     default: 0
   },
 
+  // จำนวนคนไข้ที่กำลังรับดูแล (เริ่มต้น 0)
+  patientCount: {
+    type: Number,
+    default: 0
+  },
+
   checkInTime: String,
   checkOutTime: String,
 
