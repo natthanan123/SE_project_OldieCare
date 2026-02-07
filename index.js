@@ -529,6 +529,260 @@ app.get('/api/users/relatives/:id', async (req, res) => {
   }
 });
 
+// ==================== UPDATE ROUTES ====================
+
+// ✏️ อัพเดท Nurse (สำหรับ settings)
+app.put('/api/users/nurses/:id', 
+  upload.fields([
+    { name: 'profileImage', maxCount: 1 },
+    { name: 'licenseImage', maxCount: 1 },
+    { name: 'certificateImages', maxCount: 5 }
+  ]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid nurse id' });
+      }
+
+      const nurse = await Nurse.findById(id);
+      if (!nurse) {
+        return res.status(404).json({ message: 'Nurse not found' });
+      }
+
+      // ✏️ อัพเดท Nurse fields
+      const { specialization, yearsOfExperience } = req.body;
+      if (specialization !== undefined) nurse.specialization = specialization;
+      if (yearsOfExperience !== undefined) nurse.yearsOfExperience = Number(yearsOfExperience);
+
+      if (req.files?.profileImage) {
+        const user = await User.findById(nurse.userId);
+        if (user) {
+          user.profileImage = req.files.profileImage[0].path;
+          await user.save();
+        }
+      }
+
+      if (req.files?.licenseImage) {
+        nurse.licenseImage = req.files.licenseImage[0].path;
+      }
+
+      if (req.files?.certificateImages) {
+        nurse.certificateImages = req.files.certificateImages.map(f => f.path);
+      }
+
+      const updatedNurse = await nurse.save();
+
+      res.json({
+        message: 'Nurse updated successfully',
+        nurse: updatedNurse
+      });
+
+    } catch (error) {
+      console.error('Update Nurse Error:', error);
+      res.status(500).json({
+        message: 'Error updating nurse',
+        error: error.message
+      });
+    }
+  }
+);
+
+// ✏️ อัพเดท Elderly (สำหรับ settings)
+app.put('/api/users/elderly/:id',
+  upload.fields([{ name: 'profileImage', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid elderly id' });
+      }
+
+      const elderly = await Elderly.findById(id);
+      if (!elderly) {
+        return res.status(404).json({ message: 'Elderly not found' });
+      }
+
+      // ✏️ อัพเดท Elderly fields
+      const { dateOfBirth, weight, height, allergies, medicalConditions, medications } = req.body;
+      if (dateOfBirth !== undefined) elderly.dateOfBirth = dateOfBirth;
+      if (weight !== undefined) elderly.weight = Number(weight);
+      if (height !== undefined) elderly.height = Number(height);
+      if (allergies !== undefined) elderly.foodAllergies = safeParse(allergies, elderly.foodAllergies);
+      if (medicalConditions !== undefined) elderly.medicalConditions = safeParse(medicalConditions, elderly.medicalConditions);
+      if (medications !== undefined) elderly.medications = safeParse(medications, elderly.medications);
+
+      if (req.files?.profileImage) {
+        const user = await User.findById(elderly.userId);
+        if (user) {
+          user.profileImage = req.files.profileImage[0].path;
+          await user.save();
+        }
+      }
+
+      const updatedElderly = await elderly.save();
+
+      res.json({
+        message: 'Elderly updated successfully',
+        elderly: updatedElderly
+      });
+
+    } catch (error) {
+      console.error('Update Elderly Error:', error);
+      res.status(500).json({
+        message: 'Error updating elderly',
+        error: error.message
+      });
+    }
+  }
+);
+
+// ✏️ อัพเดท Relative (สำหรับ settings)
+app.put('/api/users/relatives/:id',
+  upload.fields([{ name: 'profileImage', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid relative id' });
+      }
+
+      const relative = await Relative.findById(id);
+      if (!relative) {
+        return res.status(404).json({ message: 'Relative not found' });
+      }
+
+      // ✏️ อัพเดท Relative fields
+      const { relationship, relationshipDetail } = req.body;
+      if (relationship !== undefined) relative.relationship = relationship;
+      if (relationshipDetail !== undefined) relative.relationshipDetail = relationshipDetail;
+
+      if (req.files?.profileImage) {
+        const user = await User.findById(relative.userId);
+        if (user) {
+          user.profileImage = req.files.profileImage[0].path;
+          await user.save();
+        }
+      }
+
+      const updatedRelative = await relative.save();
+
+      res.json({
+        message: 'Relative updated successfully',
+        relative: updatedRelative
+      });
+
+    } catch (error) {
+      console.error('Update Relative Error:', error);
+      res.status(500).json({
+        message: 'Error updating relative',
+        error: error.message
+      });
+    }
+  }
+);
+
+// ==================== DELETE ROUTES ====================
+
+// 🗑️ ลบ Nurse (ลบ user ไปด้วย)
+app.delete('/api/users/nurses/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid nurse id' });
+    }
+
+    const nurse = await Nurse.findById(id);
+    if (!nurse) {
+      return res.status(404).json({ message: 'Nurse not found' });
+    }
+
+    // 🗑️ ลบ User ด้วย
+    const userId = nurse.userId;
+    await User.findByIdAndDelete(userId);
+    await Nurse.findByIdAndDelete(id);
+
+    res.json({
+      message: 'Nurse and associated user deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete Nurse Error:', error);
+    res.status(500).json({
+      message: 'Error deleting nurse',
+      error: error.message
+    });
+  }
+});
+
+// 🗑️ ลบ Elderly (ลบ user ไปด้วย)
+app.delete('/api/users/elderly/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid elderly id' });
+    }
+
+    const elderly = await Elderly.findById(id);
+    if (!elderly) {
+      return res.status(404).json({ message: 'Elderly not found' });
+    }
+
+    // 🗑️ ลบ User ด้วย
+    const userId = elderly.userId;
+    await User.findByIdAndDelete(userId);
+    await Elderly.findByIdAndDelete(id);
+
+    res.json({
+      message: 'Elderly and associated user deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete Elderly Error:', error);
+    res.status(500).json({
+      message: 'Error deleting elderly',
+      error: error.message
+    });
+  }
+});
+
+// 🗑️ ลบ Relative (ลบ user ไปด้วย)
+app.delete('/api/users/relatives/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid relative id' });
+    }
+
+    const relative = await Relative.findById(id);
+    if (!relative) {
+      return res.status(404).json({ message: 'Relative not found' });
+    }
+
+    // 🗑️ ลบ User ด้วย
+    const userId = relative.userId;
+    await User.findByIdAndDelete(userId);
+    await Relative.findByIdAndDelete(id);
+
+    res.json({
+      message: 'Relative and associated user deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete Relative Error:', error);
+    res.status(500).json({
+      message: 'Error deleting relative',
+      error: error.message
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running' });
