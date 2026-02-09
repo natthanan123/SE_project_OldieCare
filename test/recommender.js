@@ -10,7 +10,11 @@ function recommendNurses(nurses = []) {
     const name = (userObj?.name || n.name || '').toString();
     const profileImage = userObj?.profileImage || null;
     const patientCount = typeof n.patientCount === 'number' ? n.patientCount : 0;
-    return { id, name, profileImage, patientCount, raw: n };
+    // nurse-specific fields
+    const education = n.education || null;
+    const specialization = n.specialization || '';
+    const skills = Array.isArray(n.skills) ? n.skills : (n.skills ? [n.skills] : []);
+    return { id, name, profileImage, patientCount, education, specialization, skills, raw: n };
   });
 
   // ตัดพยาบาลที่เต็มออกไป
@@ -29,6 +33,9 @@ function recommendNurses(nurses = []) {
     name: n.name,
     patientCount: n.patientCount,
     profileImage: n.profileImage,
+    education: n.education,
+    specialization: n.specialization,
+    skills: n.skills,
     isFull: false
   }));
 }
