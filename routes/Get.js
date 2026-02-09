@@ -10,7 +10,7 @@ const Relative = require('../Model/Relative');
 // ดึงข้อมูล Nurse ทั้งหมด
 router.get('/api/users/nurses', async (req, res) => {
   try {
-    const nurses = await Nurse.find().populate('userId');
+    const nurses = await Nurse.find().populate('userId', 'name profileImage');
 
     if (!nurses || nurses.length === 0) {
       return res.status(404).json({ message: 'No nurses found' });
@@ -33,7 +33,7 @@ router.get('/api/users/nurses/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid nurse id' });
     }
 
-    const nurse = await Nurse.findById(id).populate('userId');
+    const nurse = await Nurse.findById(id).populate('userId', 'name profileImage');
 
     if (!nurse) {
       return res.status(404).json({ message: 'Nurse not found' });
