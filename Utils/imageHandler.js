@@ -30,9 +30,12 @@ const fileFilter = (req, file, cb) => {
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
+    // กำหนด format ตามไฟล์ที่อัปโหลด (jpg, png, webp ฯลฯ)
+    const format = file.originalname.split('.').pop().toLowerCase();
+    
     return {
       folder: 'uploads',
-      format: 'jpg', // บังคับเป็น jpg
+      format: ['jpg', 'jpeg', 'png', 'webp'].includes(format) ? format : 'jpg', // เก็บ format ต้นฉบับ
       public_id: generateFilename(req.body.email || 'user'),
       transformation: [
         { width: 500, height: 500, crop: 'fill' }
