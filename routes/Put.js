@@ -111,7 +111,7 @@ router.put('/api/users/elderly/:id',
       }
 
       // ✏️ อัพเดท Elderly fields
-      const { name, email, phone, address, dateOfBirth, weight, height, allergies, medicalConditions, medications } = req.body;
+      const { name, email, phone, address, dateOfBirth, age, weight, height, allergies, medicalConditions, medications } = req.body;
       
       // Update User fields
       const user = await User.findById(elderly.userId);
@@ -125,6 +125,7 @@ router.put('/api/users/elderly/:id',
       
       // Update Elderly fields
       if (dateOfBirth !== undefined) elderly.dateOfBirth = dateOfBirth;
+      if (age !== undefined) elderly.age = Number(age);
       if (weight !== undefined) elderly.weight = Number(weight);
       if (height !== undefined) elderly.height = Number(height);
       if (allergies !== undefined) elderly.foodAllergies = safeParse(allergies, elderly.foodAllergies);

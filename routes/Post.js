@@ -61,6 +61,7 @@ router.post(
   ]),
   async (req, res) => {
     try {
+      /* const { name, email, phone, password, specialization, yearsOfExperience } = req.body; */
       const { name, email, phone, specialization, yearsOfExperience } = req.body;
 
       const education = safeParse(req.body.education, { degree: "", major: "", university: "", graduationYear: 0 });
@@ -72,6 +73,7 @@ router.post(
         name,
         email,
         phone,
+        /* password, */
         role: 'nurse',
         profileImage: req.files.profileImage?.[0]?.path 
       });
@@ -120,6 +122,16 @@ router.post(
   ]),
   async (req, res) => {
     try {
+      /* const {
+        name,
+        email,
+        phone,
+        password,
+        elderlyId,
+        relationship,
+        relationshipDetail,
+        emergencyContact
+      } = req.body; */
       const {
         name,
         email,
@@ -135,6 +147,7 @@ router.post(
         name,
         email,
         phone,
+        /* password, */
         role: 'relative',
         profileImage: req.files.profileImage?.[0]?.path || null
       });
@@ -177,11 +190,21 @@ router.post(
   ]),
   async (req, res) => {
     try {
+      /* const {
+        name,
+        email,
+        phone,
+        password,
+        dateOfBirth,
+        age,
+        assignedNurse
+      } = req.body; */
       const {
         name,
         email,
         phone,
         dateOfBirth,
+        age,
         assignedNurse
       } = req.body;
 
@@ -196,6 +219,7 @@ router.post(
         name,
         email,
         phone,
+        /* password, */
         role: 'elderly',
         profileImage: req.files.profileImage?.[0]?.path || null
       });
@@ -206,6 +230,7 @@ router.post(
       const elderly = new Elderly({
         userId: savedUser._id,
         dateOfBirth: dateOfBirth || new Date(),
+        age: Number(age) || 0,
         weight: Number(req.body.weight) || 0,
         height: Number(req.body.height) || 0,
         address,

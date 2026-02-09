@@ -12,6 +12,11 @@ const elderlySchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  // อายุ (ปี)
+  age: {
+    type: Number,
+    required: true
+  },
   // น้ำหนัก (กิโลกรัม)
   weight: {
     type: Number,
