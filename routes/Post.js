@@ -5,8 +5,8 @@ const User = require('../Model/User');
 const Nurse = require('../Model/Nurse');
 const Relative = require('../Model/Relative');
 const Elderly = require('../Model/Elderly');
-const Activity = require('../Activity/Activity');
-const Ingredient = require('../Ingredient/Ingredient');
+const Activity = require('../Model/Activity');
+const Ingredient = require('../Model/Ingredient');
 
 const safeParse = (data, defaultValue) => {
   try {
@@ -290,6 +290,7 @@ router.post('/api/activity', async (req, res) => {
     }
 });
 
+//สร้างIngredient
 
 router.post('/api/ingredient', async (req, res) => {
     try {
@@ -304,7 +305,6 @@ router.post('/api/ingredient', async (req, res) => {
              return res.status(400).json({ message: `Invalid category. Must be one of: ${validCategories.join(', ')}` });
         }
 
-        //สร้างIngredient
         const newIngredient = new Ingredient({
             name,
             category,
