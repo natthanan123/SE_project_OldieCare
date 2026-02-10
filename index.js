@@ -29,15 +29,8 @@ const Ingredient = require('./Ingredient/Ingredient');
 
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
-  .then(async() => {
-    console.log('Connected to MongoDB successfully');
-  try {
-      await mongoose.connection.collection('elderlies').dropIndex('nationalId_1');
-      console.log("✅ ลบ Index 'nationalId_1' สำเร็จแล้ว!");
-    } catch (err) {
-      console.log("⚠️ ไม่เจอ Index หรือลบไปแล้ว (ช่างมัน):", err.message);
-    }
-    
+  .then(() => {
+    console.log('Connected to MongoDB successfully'); 
   })
   .catch((err) => console.error("MongoDB connection error:", err));
   

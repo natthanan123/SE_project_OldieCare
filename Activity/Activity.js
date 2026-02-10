@@ -12,19 +12,39 @@ const activitySchema = new mongoose.Schema({
         type: String,
         required: true
     },
-
+  //รายละเอียด
   description: {
         type: String,
         default: ""
     },
+  //เวลาเริ่ม
   startTime: {
         type: String, 
         required: true
     },
+  //เวลาเสร็จ
   endTime: {
         type: String,
         required: true
     },
+  //วันที่ของกิจกรรม
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now 
+  },
+  //สถานะงาน
+  status: {
+    type: String,
+    enum: ['Upcoming', 'completed'],
+    default: 'Upcoming'
+  },
+  //Timestamp
+  completedAt: {
+    type: Date,
+    default: null
+  },
+
   createdAt: {
         type: Date,
         default: Date.now

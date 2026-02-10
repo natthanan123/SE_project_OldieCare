@@ -256,7 +256,7 @@ router.post(
 //สร้างActivity
 router.post('/api/activity', async (req, res) => {
     try {
-        const { elderly, elderlyname, topic, description, startTime, endTime } = req.body;
+        const { elderly, elderlyname, topic, description, startTime, endTime, date } = req.body;
 
         const elderlyId = elderly || elderlyname;
         if (!elderlyId || !topic || !startTime || !endTime) {
@@ -268,7 +268,9 @@ router.post('/api/activity', async (req, res) => {
             topic,
             description,
             startTime,
-            endTime
+            endTime,
+            date: date ? new Date(date) : new Date(),
+            status: 'Upcoming'
         });
 
         const savedActivity = await newActivity.save();
