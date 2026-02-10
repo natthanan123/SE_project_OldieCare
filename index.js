@@ -24,6 +24,8 @@ const User = require('./Model/User');
 const Nurse = require('./Model/Nurse');
 const Relative = require('./Model/Relative');
 const Elderly = require('./Model/Elderly');
+const Activity = require('./Activity/Activity');
+const Ingredient = require('./Ingredient/Ingredient'); 
 
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
