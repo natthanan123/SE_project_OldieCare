@@ -1,8 +1,74 @@
-import { registerRootComponent } from 'expo';
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
+const multer = require('multer');
 
-import App from './App';
+// Routes
+const postRoutes = require('./routes/Post');
+const getRoutes = require('./routes/Get');
+const putRoutes = require('./routes/Put');
+const deleteRoutes = require('./routes/Delete');
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+const app = express();
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI ;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Import Models
+const User = require('./Model/User');
+const Nurse = require('./Model/Nurse');
+const Relative = require('./Model/Relative');
+const Elderly = require('./Model/Elderly');
+
+// MongoDB Connection
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB successfully');
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+  });
+
+// ==================== ROUTES ====================
+app.use(postRoutes);
+app.use(getRoutes);
+app.use(putRoutes);
+app.use(deleteRoutes);
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ message: 'Server is running' });
+});
+
+// Test route
+app.get('/', (req, res) => {
+  res.send('hello world');
+});
+/*
+const authRoutes = require('./routes/auth');
+app.use('/api', authRoutes);
+*/
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError || err.message.includes('Only image')) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  console.error(err);
+  res.status(500).json({ error: 'Server error' });
+});
+
+
+
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+module.exports = app;

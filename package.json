@@ -1,23 +1,30 @@
 {
-  "name": "oldicare",
+  "name": "backend",
   "version": "1.0.0",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "@react-navigation/native": "^7.1.26",
-    "@react-navigation/native-stack": "^7.9.0",
-    "expo": "~54.0.31",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
-    "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
+    "bcryptjs": "^3.0.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.1.5",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
+    "sharp": "^0.34.5"
   },
-  "private": true
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
 }
