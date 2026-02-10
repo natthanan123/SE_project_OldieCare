@@ -5,6 +5,8 @@ const User = require('../Model/User');
 const Nurse = require('../Model/Nurse');
 const Relative = require('../Model/Relative');
 const Elderly = require('../Model/Elderly');
+const Activity = require('../Activity/Activity');
+const Ingredient = require('../Ingredient/Ingredient');
 
 const safeParse = (data, defaultValue) => {
   try {
@@ -259,5 +261,72 @@ router.post(
     }
   }
 );
+//สร้างActivity
+router.post('/api/activity', async (req, res) => {
+    try {
+        const { name, caloriesPerMinute, category, description } = req.body;
+
+        if (!name || !caloriesPerMinute) {
+            return res.status(400).json({ message: "Name and caloriesPerMinute are required" });
+        }
+
+        const newActivity = new Activity({
+            name,
+            caloriesPerMinute: Number(caloriesPerMinute),
+            category: category || 'Exercise',
+            description
+        });
+
+        const savedActivity = await newActivity.save();
+
+        res.status(201).json({
+            message: "Activity created successfully",
+            data: savedActivity
+        });
+
+    } catch (error) {
+        console.error("Create Activity Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+});
+
+
+router.post('/api/ingredient', async (req, res) => {
+    try {
+        const { name, category, caloriesPerGram, unit, description } = req.body;
+
+        if (!name || !category || !caloriesPerGram) {
+            return res.status(400).json({ message: "Name, category, and caloriesPerGram are required" });
+        }
+
+        const validCategories = ['Protein', 'Carbohydrate', 'Fat', 'Vegetable', 'Fruit'];
+        if (!validCategories.includes(category)) {
+             return res.status(400).json({ message: `Invalid category. Must be one of: ${validCategories.join(', ')}` });
+        }
+
+        //สร้างIngredient
+        const newIngredient = new Ingredient({
+            name,
+            category,
+            caloriesPerGram: Number(caloriesPerGram),
+            unit: unit || 'g',
+            description
+        });
+
+        const savedIngredient = await newIngredient.save();
+
+        res.status(201).json({
+            message: "Ingredient created successfully",
+            data: savedIngredient
+        });
+
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ message: "Ingredient name already exists" });
+        }
+        console.error("Create Ingredient Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+});
 
 module.exports = router;
