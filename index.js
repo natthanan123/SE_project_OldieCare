@@ -30,11 +30,10 @@ const Ingredient = require('./Ingredient/Ingredient');
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log('Connected to MongoDB successfully');
+    console.log('Connected to MongoDB successfully'); 
   })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-  });
+  .catch((err) => console.error("MongoDB connection error:", err));
+  
 
 // ==================== ROUTES ====================
 app.use(postRoutes);

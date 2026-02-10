@@ -7,6 +7,10 @@ const elderlySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  //ชื่อ
+  name: {
+    type: String,
+  },
   // วันเกิด
   dateOfBirth: {
     type: Date,
