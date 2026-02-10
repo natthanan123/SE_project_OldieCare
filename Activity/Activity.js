@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 // Activity Schema - เก็บกิจกรรมพร้อมค่า kcal ต่อ นาที
 const activitySchema = new mongoose.Schema({
-  elderlyname: {
+  elderly: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Elderly',
     required: true

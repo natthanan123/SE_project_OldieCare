@@ -214,7 +214,7 @@ router.post(
         phone,
         /* password, */
         role: 'elderly',
-        profileImage: req.files.profileImage?.[0]?.path || null
+        profileImage: req.files?.profileImage?.[0]?.path || null
       });
 
       const savedUser = await user.save();
