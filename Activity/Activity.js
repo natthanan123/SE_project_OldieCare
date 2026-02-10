@@ -2,26 +2,33 @@ const mongoose = require('mongoose');
 
 // Activity Schema - เก็บกิจกรรมพร้อมค่า kcal ต่อ นาที
 const activitySchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  // แคลอรี่ที่ใช้ต่อ 1 นาที
-  caloriesPerMinute: {
-    type: Number,
+  elderlyname: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Elderly',
     required: true
   },
-  // หมวดกิจกรรม เช่น Exercise, DailyLiving, Therapy
-  category: {
-    type: String,
-    default: 'Exercise'
-  },
-  description: String,
+  //หัวข้อ
+  topic: {
+        type: String,
+        required: true
+    },
+
+  description: {
+        type: String,
+        default: ""
+    },
+  startTime: {
+        type: String, 
+        required: true
+    },
+  endTime: {
+        type: String,
+        required: true
+    },
   createdAt: {
-    type: Date,
-    default: Date.now
-  }
+        type: Date,
+        default: Date.now
+    }
 });
 
 const Activity = mongoose.model('Activity', activitySchema);

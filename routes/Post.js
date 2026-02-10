@@ -192,15 +192,6 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      /* const {
-        name,
-        email,
-        phone,
-        password,
-        dateOfBirth,
-        age,
-        assignedNurse
-      } = req.body; */
       const {
         name,
         email,
@@ -231,6 +222,7 @@ router.post(
       // สร้าง Elderly details
       const elderly = new Elderly({
         userId: savedUser._id,
+        name: name,
         dateOfBirth: dateOfBirth || new Date(),
         age: Number(age) || 0,
         weight: Number(req.body.weight) || 0,
@@ -264,17 +256,19 @@ router.post(
 //สร้างActivity
 router.post('/api/activity', async (req, res) => {
     try {
-        const { name, caloriesPerMinute, category, description } = req.body;
+        const { elderly, elderlyname, topic, description, startTime, endTime } = req.body;
 
-        if (!name || !caloriesPerMinute) {
-            return res.status(400).json({ message: "Name and caloriesPerMinute are required" });
+        const elderlyId = elderly || elderlyname;
+        if (!elderlyId || !topic || !startTime || !endTime) {
+            return res.status(400).json({ message: "Elderly ID, Topic, StartTime, and EndTime are required" });
         }
 
         const newActivity = new Activity({
-            name,
-            caloriesPerMinute: Number(caloriesPerMinute),
-            category: category || 'Exercise',
-            description
+            elderly: elderlyId,
+            topic,
+            description,
+            startTime,
+            endTime
         });
 
         const savedActivity = await newActivity.save();
