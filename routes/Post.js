@@ -7,6 +7,7 @@ const Relative = require('../Model/Relative');
 const Elderly = require('../Model/Elderly');
 const Activity = require('../Activity/Activity');
 const Ingredient = require('../Ingredient/Ingredient');
+const Medication = require('../MED/Medication');
 
 const safeParse = (data, defaultValue) => {
   try {
@@ -321,6 +322,45 @@ router.post('/api/ingredient', async (req, res) => {
             return res.status(400).json({ message: "Ingredient name already exists" });
         }
         console.error("Create Ingredient Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+});
+
+//สร้าง Medication
+router.post('/api/medication', async (req, res) => {
+    try {
+        //รับค่าจากหน้าบ้าน (Frontend)
+        const { elderly, name, quantity, unit, time, date } = req.body;
+
+        //้ช็คว่ามี ID ผู้สูงอายุไหม
+        if (!elderly) {
+            return res.status(400).json({ message: "Elderly ID is required" });
+        }
+
+        //เช็คข้อมูลยาครบไหม
+        if (!name || !quantity || !unit || !time) {
+            return res.status(400).json({ message: "Name, Quantity, Unit, and Time are required" });
+        }
+
+        const newMedication = new Medication({
+            elderly,
+            name,
+            quantity: Number(quantity),
+            unit,
+            time,
+            date: date ? new Date(date) : new Date(), // ถ้าไม่ส่งวันที่มา ใช้วันปัจจุบัน
+            status: 'Upcoming'
+        });
+
+        const savedMedication = await newMedication.save();
+
+        res.status(201).json({
+            message: "Medication schedule created successfully",
+            data: savedMedication
+        });
+
+    } catch (error) {
+        console.error("Create Medication Error:", error);
         res.status(500).json({ message: "Server Error", error: error.message });
     }
 });
