@@ -11,6 +11,10 @@ const elderlySchema = new mongoose.Schema({
   name: {
     type: String,
   },
+  room: { 
+    type: String,
+     default: "-" 
+  },
   // วันเกิด
   dateOfBirth: {
     type: Date,

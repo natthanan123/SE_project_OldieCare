@@ -142,5 +142,30 @@ router.get('/api/health', (req, res) => {
 router.get('/', (req, res) => {
   res.send('hello world');
 });
+//elderly-card ของพยาบาลที่แสดงข้อมูลใน My Patients
+router.get('/api/users/elderly-card', async (req, res) => {
+    try {
+        const elderlyList = await Elderly.find()
+            .populate('userId', 'name profileImage') 
+            .sort({ createdAt: -1 });
+        const formattedData = elderlyList.map(item => {
+            const user = item.userId || {}; 
+            return {
+                id: item._id,
+                name: user.name || item.name,
+                image: user.profileImage || null,
+                conditions: item.medicalConditions || [],
+                allergies: item.diseaseAllergies || [],
+                room: item.room || "-"
+            };
+        });
+
+        res.status(200).json(formattedData);
+
+    } catch (err) {
+        console.error("Get Elderly Card Error:", err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 module.exports = router;

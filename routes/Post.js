@@ -195,6 +195,7 @@ router.post(
     try {
       const {
         name,
+        room,
         email,
         phone,
         dateOfBirth,
@@ -224,6 +225,7 @@ router.post(
       const elderly = new Elderly({
         userId: savedUser._id,
         name: name,
+        room: room || "-",
         dateOfBirth: dateOfBirth || new Date(),
         age: Number(age) || 0,
         weight: Number(req.body.weight) || 0,
