@@ -4,6 +4,7 @@ const { recommendNurses } = require('../test/recommender');
 const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
+const Medication = require('../MED/Medication');
 
 // ==================== READ ROUTES ====================
 
@@ -154,6 +155,7 @@ router.get('/api/users/elderly-card', async (req, res) => {
                 id: item._id,
                 name: user.name || item.name,
                 image: user.profileImage || null,
+                age: item.age,
                 conditions: item.medicalConditions || [],
                 allergies: item.diseaseAllergies || [],
                 room: item.room || "-"
@@ -165,6 +167,37 @@ router.get('/api/users/elderly-card', async (req, res) => {
     } catch (err) {
         console.error("Get Elderly Card Error:", err);
         res.status(500).json({ error: err.message });
+    }
+});
+//ดึงรายการยา
+router.get('/api/medication', async (req, res) => {
+    try {
+        const { elderlyId, date } = req.query;
+
+        if (!elderlyId) {
+            return res.status(400).json({ message: "Elderly ID is required" });
+        }
+
+        //ตั้งเวลา
+        const targetDate = date ? new Date(date) : new Date();
+        const startOfDay = new Date(targetDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(targetDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        const medications = await Medication.find({
+            elderly: elderlyId,
+            date: {
+                $gte: startOfDay, 
+                $lte: endOfDay
+            }
+        }).sort({ time: 1 });
+
+        res.status(200).json(medications);
+
+    } catch (error) {
+        console.error("Get Medication Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
     }
 });
 
