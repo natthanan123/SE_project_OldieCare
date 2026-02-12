@@ -47,14 +47,18 @@ const cleanupUploadedFiles = (files) => {
     });
   }
 };
+
 const storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-          cb(null, "uploads/");
-        },
-        filename: function (req, file, cb) {
-          cb(null, Date.now() + "-" + file.originalname);
-        },
-      });
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+
 // Routes - สร้าง User
 
 // 1. สร้าง Nurse (with Cloudinary upload)
