@@ -12,8 +12,6 @@ const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [profiles, setProfiles] = useState([]); 
   const [error, setError] = useState("");
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState(null); // เก็บก้อนข้อมูล User ที่จะแก้

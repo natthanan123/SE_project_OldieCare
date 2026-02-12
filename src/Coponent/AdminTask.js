@@ -10,19 +10,15 @@ const navigate = useNavigate();
 
 const [tasks, setTasks] = useState([]);
 const [nurses, setNurses] = useState([]);
-const [loading, setLoading] = useState(false);
+
 const [elderlies, setElderlies] = useState([]);
 const [selectedElderly, setSelectedElderly] = useState(null);
 const [showModal, setShowModal] = useState(false);
-const [recommendedNurses, setRecommendedNurses] = useState([]);
+
 const [loadingElderly, setLoadingElderly] = useState(false);
 
 const MAX_PATIENT = 3;
 
-const totalNurses = nurses.length;
-
-const availableNurses = nurses.filter(n => n.patientCount < MAX_PATIENT).length;
-const fullNurses = nurses.filter(n => n.patientCount >= MAX_PATIENT).length;
 
 const fetchElderlies = async () => {
   try {
@@ -51,15 +47,7 @@ const openAssignModal = async (elderly) => {
   loadNurses();
 };
 
-const formatProfile = (data, roleName) =>
-  (Array.isArray(data) ? data : []).map(item => ({
-    id: item._id,
-    name: item.userId?.name || `${item.userId?.firstName || ""} ${item.userId?.lastName || ""}`,
-    role: roleName,
-    image: item.userId?.profileImage || '',
-    assignedNurse: item.assignedNurse || null,   // ⭐ เพิ่ม
-    raw: item
-}));
+
 
 
 const sortedNurses = [...nurses].sort((a, b) =>
@@ -67,16 +55,6 @@ const sortedNurses = [...nurses].sort((a, b) =>
   (a.userId?.name || "").localeCompare(b.userId?.name || "")
 );
 
-const recommendNurses = (nurses) => {
-  return nurses.map(n => ({
-    id: n._id,
-    patientCount: n.patientCount || 0,
-    isFull: (n.patientCount || 0) >= 3,
-
-    // ⭐ เพิ่มอันนี้
-    userId: n.userId
-  }));
-};
 
 const loadNurses = async () => {
   try {
