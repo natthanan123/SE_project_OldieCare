@@ -11,7 +11,8 @@ const relativeSchema = new mongoose.Schema({
   elderlyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Elderly',
-    required: true
+    required: false,
+    default: null
   },
   // ความสัมพันธ์
   relationship: {
