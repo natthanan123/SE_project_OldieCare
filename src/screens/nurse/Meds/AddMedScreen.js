@@ -1,13 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
-import { addMed } from '../../../services/nurseService'; 
+// ✅ นำเข้าฟังก์ชันที่เชื่อมต่อกับ Backend
+import { addMedication } from '../../../services/nurseService'; 
 
 export default function AddMedScreen({ route, navigation }) {
-    // 1. สร้าง State สำหรับเก็บข้อมูล
-    const [patientName, setPatientName] = useState('');
+    // 1. รับค่า Params ที่ส่งมาจากหน้า NurseHomeScreen หรือ MedsScreen
+    const { elderId, elderName } = route.params || {};
+
+    // 2. สร้าง State
+    const [patientName, setPatientName] = useState(elderName || ''); // ถ้ามีชื่อส่งมา ให้ใช้ชื่อนั้นเลย
     const [name, setName] = useState('');
     const [dosage, setDosage] = useState('1');
     const [unit, setUnit] = useState('Tablet');
@@ -16,78 +20,44 @@ export default function AddMedScreen({ route, navigation }) {
 
     const commonUnits = ['Tablet', 'Capsule', 'Sachet', 'CC', 'Spoon'];
 
-    // ฟังก์ชันสำหรับล้างค่าในช่องกรอกทั้งหมด
-    const clearForm = () => {
-        setPatientName('');
-        setName('');
-        setDosage('1');
-        setUnit('Tablet');
-        setTime(new Date());
-    };
-
-    // ล้างค่าเมื่อหน้าจอถูกเปิดใหม่ และจัดการ Cleanup Params อย่างปลอดภัย
-    useFocusEffect(
-        useCallback(() => {
-            clearForm();
-            
-            return () => {
-                // ตรวจสอบว่าหน้าจอยังอยู่ใน Focus ก่อนสั่งแก้ Params เพื่อป้องกัน SET_PARAMS Error
-                if (navigation.isFocused()) {
-                    try {
-                        navigation.setParams({ 
-                            elderName: undefined, 
-                            elderId: undefined, 
-                            med: undefined, 
-                            isEdit: false 
-                        });
-                    } catch (e) {
-                        // ข้ามการทำ setParams หาก Navigator ปิดหน้าไปแล้ว
-                    }
-                }
-            };
-        }, [navigation])
-    );
+    // 3. ใช้ useEffect เพื่ออัปเดตชื่อผู้สูงอายุหาก Params เปลี่ยนแปลง
+    useEffect(() => {
+        if (elderName) {
+            setPatientName(elderName);
+        }
+    }, [elderName]);
 
     const handleSave = async () => {
-        // ตรวจสอบความครบถ้วนก่อนบันทึก
-        if (!patientName.trim() || !name.trim() || !dosage.trim()) {
-            return Alert.alert("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน\n(ชื่อผู้สูงอายุ, ชื่อยา และจำนวน)");
+        // ตรวจสอบความครบถ้วน
+        if (!name.trim() || !dosage.trim()) {
+            return Alert.alert("แจ้งเตือน", "กรุณากรอกชื่อยาและจำนวนให้ครบถ้วน");
         }
 
         try {
-            await addMed({
-                elderId: 'manual_entry',
-                elderName: patientName,
-                name: name,
-                dose: `${dosage} ${unit}`,
-                time: time.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }),
-                status: 'Upcoming'
+            // ✅ ส่งข้อมูลให้ตรงกับ Schema ใน MongoDB
+            await addMedication({
+                elderly: elderId, // ส่ง ID เพื่อใช้เชื่อมโยงข้อมูล
+                name: name,       // ชื่อยา เช่น "horse pill"
+                quantity: Number(dosage), // จำนวนเป็นตัวเลข
+                unit: unit,       // หน่วย เช่น "Capsule"
+                time: time.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }), // รูปแบบ 18:00
+                status: 'Upcoming' // ค่าเริ่มต้น
             });
 
-            // ล้างค่าหลังจากบันทึกสำเร็จและย้อนกลับอย่างปลอดภัย
             Alert.alert(
                 "สำเร็จ", 
-                "บันทึกข้อมูลเรียบร้อยแล้ว",
-                [
-                    { 
-                        text: "ตกลง", 
-                        onPress: () => {
-                            clearForm(); 
-                            // ใช้ goBack() แทน navigate('Meds') เพื่อป้องกัน Error เรื่อง Navigator ระดับเดียวกัน
-                            navigation.goBack(); 
-                        } 
-                    }
-                ]
+                "บันทึกข้อมูลยาเรียบร้อยแล้ว",
+                [{ text: "ตกลง", onPress: () => navigation.goBack() }]
             );
             
         } catch (error) {
-            Alert.alert("Error", "ไม่สามารถบันทึกข้อมูลได้");
+            console.error("Add Med Error:", error);
+            Alert.alert("Error", "ไม่สามารถบันทึกข้อมูลยาได้");
         }
     };
 
     return (
         <ScrollView style={styles.container}>
-            {/* Header: ใช้ goBack() เพื่อย้อนกลับไปหน้าเดิมที่เปิดมา */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
@@ -99,14 +69,9 @@ export default function AddMedScreen({ route, navigation }) {
             <View style={styles.formCard}>
                 <Text style={styles.label}>Elder Name</Text>
                 <TextInput
-                    style={styles.input} 
-                    placeholder="Enter elder name"
+                    style={[styles.input, { backgroundColor: '#F0F0F0', color: '#666' }]} 
                     value={patientName}
-                    onChangeText={setPatientName}
-                    // ป้องกัน Keyboard จำค่าเก่า (Auto-fill) ตามต้องการ
-                    autoCorrect={false}
-                    spellCheck={false}
-                    autoComplete="off"
+                    editable={false} // ✅ ล็อกชื่อไว้ ไม่ให้แก้ไขหากส่งมาจากหน้าการ์ด
                 />
 
                 <Text style={styles.label}>Medication Name</Text>
@@ -115,9 +80,6 @@ export default function AddMedScreen({ route, navigation }) {
                     placeholder="e.g. Paracetamol"
                     value={name}
                     onChangeText={setName}
-                    autoCorrect={false}
-                    spellCheck={false}
-                    autoComplete="off"
                 />
 
                 <Text style={styles.label}>Quantity</Text>
@@ -134,7 +96,6 @@ export default function AddMedScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                {/* ปุ่มเลือกหน่วยแบบรวดเร็ว */}
                 <View style={styles.tagContainer}>
                     {commonUnits.map((u) => (
                         <TouchableOpacity 
@@ -160,7 +121,7 @@ export default function AddMedScreen({ route, navigation }) {
                         value={time}
                         mode="time"
                         is24Hour={true}
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        display="spinner"
                         onChange={(event, date) => {
                             setShowPicker(false);
                             if (date) setTime(date);
@@ -181,7 +142,7 @@ const styles = StyleSheet.create({
     header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: 'white' },
     backBtn: { padding: 4 },
     headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-    formCard: { backgroundColor: 'white', margin: 16, padding: 20, borderRadius: 24, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+    formCard: { backgroundColor: 'white', margin: 16, padding: 20, borderRadius: 24, elevation: 4 },
     label: { fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 8 },
     input: { backgroundColor: '#F5F5F5', borderRadius: 15, padding: 15, marginBottom: 18, fontSize: 16, borderWidth: 1, borderColor: '#EEE', color: '#333' },
     dosageRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
@@ -195,6 +156,6 @@ const styles = StyleSheet.create({
     tagTextActive: { color: 'white', fontWeight: 'bold' },
     timeInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 15, padding: 15 },
     timeText: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-    submitBtn: { backgroundColor: '#73C7FF', margin: 16, padding: 20, borderRadius: 20, alignItems: 'center', elevation: 2 },
+    submitBtn: { backgroundColor: '#73C7FF', margin: 16, padding: 20, borderRadius: 20, alignItems: 'center' },
     submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: 18 }
 });

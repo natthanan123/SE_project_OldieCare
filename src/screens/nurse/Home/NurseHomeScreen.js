@@ -15,7 +15,7 @@ export default function NurseHomeScreen({ navigation }) {
   const { greeting, sosAlert, loading: hookLoading, taskCount, error: hookError } = useNurseHome();
 
   // 1. ID พยาบาลคงเดิมเพื่อการทดสอบ
-  const NURSE_ID = "6989acf7f8bd7b80f2ac0a56"; 
+  const NURSE_ID = "69899e3c3081a93aa121ed07"; 
 
   const [assignedElders, setAssignedElders] = useState([]);
   const [dbLoading, setDbLoading] = useState(true);

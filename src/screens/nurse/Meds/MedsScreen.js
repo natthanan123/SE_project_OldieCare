@@ -1,41 +1,54 @@
+// src/screens/nurse/Meds/MedsScreen.js
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { getMeds, updateMedStatus, deleteMed } from '../../../services/nurseService';
+// นำเข้าฟังก์ชันที่เชื่อมต่อกับ Backend จริง
+import { getMeds, updateMedStatus, deleteMed } from '../../../services/nurseService'; 
 import LoadingView from '../../../components/common/LoadingView';
 
 export default function MedsScreen({ route, navigation }) {
     const elderId = route.params?.elderId || null;
-    const elderName = route.params?.elderName || '';
+    const elderName = route.params?.elderName || 'ภาพรวมยาทั้งหมด';
     const [meds, setMeds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('All');
 
     const showBackButton = !!elderId;
 
+    // ฟังก์ชันดึงข้อมูลยาจาก MongoDB
     const loadData = async () => {
-        setLoading(true);
-        const data = await getMeds(elderId);
-        setMeds(data);
-        setLoading(false);
+        try {
+            setLoading(true);
+            const data = await getMeds(elderId);
+            setMeds(data || []);
+        } catch (error) {
+            console.error("Load Meds Error:", error);
+            Alert.alert("Error", "ไม่สามารถโหลดข้อมูลยาได้");
+        } finally {
+            setLoading(false);
+        }
     };
 
     useFocusEffect(
         useCallback(() => {
             loadData();
-            return () => navigation.setParams({ elderId: undefined });
+            // ไม่ควรล้าง params elderId ทันทีเพื่อให้กดย้อนกลับได้ถูกต้อง
         }, [elderId])
     );
 
-    // ฟังก์ชันกดยืนยันการทานยา
+    // ฟังก์ชันยืนยันการทานยา (อัปเดต status เป็น Taken ใน MongoDB)
     const handleMarkAsTaken = async (medId) => {
-        await updateMedStatus(medId, 'Taken');
-        loadData(); // รีโหลดเพื่ออัปเดตเปอร์เซ็นต์ทันที
+        try {
+            await updateMedStatus(medId, 'Taken');
+            loadData(); // รีโหลดข้อมูลเพื่ออัปเดต UI และเปอร์เซ็นต์
+        } catch (error) {
+            Alert.alert("Error", "ไม่สามารถอัปเดตสถานะการทานยาได้");
+        }
     };
 
-    // ฟังก์ชันลบยา
+    // ฟังก์ชันลบข้อมูลยาออกจาก MongoDB
     const handleDeleteMed = (medId) => {
         Alert.alert("ลบข้อมูลยา", "คุณต้องการลบรายการยานี้ใช่หรือไม่?", [
             { text: "ยกเลิก", style: "cancel" },
@@ -43,25 +56,28 @@ export default function MedsScreen({ route, navigation }) {
                 text: "ลบ",
                 style: "destructive",
                 onPress: async () => {
-                    await deleteMed(medId);
-                    loadData();
+                    try {
+                        await deleteMed(medId);
+                        loadData();
+                    } catch (error) {
+                        Alert.alert("Error", "ไม่สามารถลบข้อมูลยาได้");
+                    }
                 }
             }
         ]);
     };
 
-    // Swipe Actions (เหมือนหน้า Schedule)
     const renderRightActions = (item) => (
         <View style={styles.swipeActionsContainer}>
             <TouchableOpacity
                 style={[styles.swipeActionBtn, { backgroundColor: '#FFC107' }]}
-                onPress={() => navigation.navigate('AddMed', { med: item, isEdit: true })}
+                onPress={() => navigation.navigate('AddMed', { med: item, isEdit: true, elderId, elderName })}
             >
                 <Ionicons name="pencil" size={20} color="white" />
             </TouchableOpacity>
             <TouchableOpacity
                 style={[styles.swipeActionBtn, { backgroundColor: '#FF5252' }]}
-                onPress={() => handleDeleteMed(item.id)}
+                onPress={() => handleDeleteMed(item.id)} // item.id คือ _id จาก MongoDB
             >
                 <Ionicons name="trash" size={20} color="white" />
             </TouchableOpacity>
@@ -94,11 +110,11 @@ export default function MedsScreen({ route, navigation }) {
                 <View style={styles.header}>
                     <View style={styles.topRow}>
                         {showBackButton ? (
-                            <TouchableOpacity onPress={() => navigation.navigate('NurseTasks', { elderId, elderName })}>
+                            <TouchableOpacity onPress={() => navigation.goBack()}>
                                 <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
                         ) : <View style={{ width: 24 }} />}
-                        <Text style={styles.headerTitle}>Medication Management</Text>
+                        <Text style={styles.headerTitle}>Medication for {elderName}</Text>
                         <View style={{ width: 24 }} />
                     </View>
                     <Text style={styles.headerDate}>{getCurrentDate()}</Text>
@@ -130,6 +146,7 @@ export default function MedsScreen({ route, navigation }) {
                     data={meds.filter(m => filter === 'All' || m.status === filter)}
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.list}
+                    ListEmptyComponent={<Text style={{textAlign: 'center', marginTop: 20, color: '#999'}}>ไม่มีข้อมูลยาสำหรับคุณ {elderName}</Text>}
                     renderItem={({ item }) => {
                         const style = getStatusStyle(item.status);
                         return (
@@ -147,7 +164,6 @@ export default function MedsScreen({ route, navigation }) {
                                     <View style={styles.timeRow}>
                                         <Ionicons name="time-outline" size={16} color="#666" />
                                         <Text style={styles.timeText}>{item.time}</Text>
-                                        {!elderId && <Text style={styles.ownerText}> • {item.elderName}</Text>}
                                     </View>
 
                                     {item.status !== 'Taken' ? (
@@ -172,10 +188,7 @@ export default function MedsScreen({ route, navigation }) {
 
                 <TouchableOpacity 
                     style={styles.fab}
-                    onPress={() => navigation.navigate('AddMed', { 
-                      elderId: route.params?.elderId,
-                      elderName: route.params?.elderName 
-                    })}
+                    onPress={() => navigation.navigate('AddMed', { elderId, elderName })}
                 >
                     <Ionicons name="add" size={32} color="white" />
                 </TouchableOpacity>
@@ -188,9 +201,10 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FDFDFD' },
     header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: 'white' },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
     headerDate: { fontSize: 13, color: '#999', textAlign: 'center', marginVertical: 10 },
     progressCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F0F7FF', padding: 20, borderRadius: 24 },
+    progressTitle: { fontSize: 14, color: '#666' },
     progressSub: { fontSize: 20, fontWeight: 'bold', color: '#2FA4E7' },
     progressCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#73C7FF', justifyContent: 'center', alignItems: 'center' },
     progressPercent: { color: 'white', fontWeight: 'bold' },
@@ -202,11 +216,12 @@ const styles = StyleSheet.create({
     list: { paddingHorizontal: 20, paddingBottom: 100 },
     medCard: { backgroundColor: 'white', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, elevation: 2 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-    medName: { fontSize: 17, fontWeight: 'bold' },
+    medName: { fontSize: 17, fontWeight: 'bold', color: '#333' },
+    medDose: { color: '#666', fontSize: 14 },
     statusBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10 },
+    statusText: { fontSize: 12, fontWeight: 'bold' },
     timeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-    timeText: { fontSize: 14, fontWeight: '600', marginLeft: 5 },
-    ownerText: { color: '#73C7FF', fontWeight: 'bold' },
+    timeText: { fontSize: 14, fontWeight: '600', marginLeft: 5, color: '#333' },
     confirmBtn: { flexDirection: 'row', padding: 12, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginTop: 15 },
     confirmBtnText: { color: 'white', fontWeight: 'bold', marginLeft: 8 },
     completedTag: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 15, backgroundColor: '#F8F8F8', padding: 10, borderRadius: 15 },

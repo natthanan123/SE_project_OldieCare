@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// src/screens/nurse/Home/NurseTasksScreen.js
+import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
 
-// นำเข้าฟังก์ชันจาก apiClient
-import { getActivities, updateActivityStatus } from '../../../services/apiClient'; 
+// ✅ นำเข้า getMedications เพิ่มเติม
+import { getActivities, updateActivityStatus, getMedications } from '../../../services/apiClient'; 
 
 import TaskItem from '../../../components/nurse/TaskItem';
 import HeaderGreeting from '../../../components/nurse/HeaderGreeting';
@@ -15,21 +16,33 @@ import LoadingView from '../../../components/common/LoadingView';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function NurseTasksScreen({ route, navigation }) {
-  const { elderId, elderName } = route.params;
+  const { elderId, elderName } = route.params; 
   const { loading: initialLoading } = useNurseTasks(elderId);
   const { sosAlert } = useNurseHome();
 
   const [activities, setActivities] = useState([]);
+  const [meds, setMeds] = useState([]); // ✅ เพิ่ม State สำหรับเก็บข้อมูลยา
   const [dbLoading, setDbLoading] = useState(true);
 
-  // ฟังก์ชันโหลดข้อมูล
+  // ฟังก์ชันโหลดข้อมูลทั้ง Activities และ Medications
   const loadDataFromApi = async () => {
     try {
-      const data = await getActivities();
-      const elderTasks = data.filter(item => item.elderly === elderId || !item.elderly);
+      setDbLoading(true);
+      // ✅ ดึงข้อมูลพร้อมกันจากทั้ง 2 คอลเลกชัน
+      const [activitiesData, medsData] = await Promise.all([
+        getActivities(),
+        getMedications()
+      ]);
+      
+      // กรองเฉพาะของผู้สูงอายุคนนี้
+      const elderTasks = activitiesData.filter(item => item.elderly === elderId);
+      const elderMeds = medsData.filter(item => item.elderly === elderId);
+      
       setActivities(elderTasks);
+      setMeds(elderMeds);
     } catch (error) {
       console.error("Load Data Error:", error);
+      Alert.alert("Error", "ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์ได้");
     } finally {
       setDbLoading(false);
     }
@@ -41,26 +54,22 @@ export default function NurseTasksScreen({ route, navigation }) {
     }, [elderId])
   );
 
-  // ฟังก์ชันจัดการเมื่อกดติ๊กถูก (Update ทันทีไม่มี Check)
   const handleToggleTask = async (taskId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'Completed' ? 'Pending' : 'Completed';
-      
-      // 1. อัปเดตที่ Backend (MongoDB)
       await updateActivityStatus(taskId, newStatus);
-      
-      // 2. อัปเดต UI ทันทีเพื่อให้ผู้ใช้เห็นการเปลี่ยนแปลง
       setActivities(prev => 
         prev.map(task => 
           task._id === taskId ? { ...task, status: newStatus } : task
         )
       );
     } catch (error) {
-      Alert.alert("Error", "ไม่สามารถอัปเดตสถานะได้");
+      Alert.alert("Error", "ไม่สามารถอัปเดตสถานะกิจกรรมได้");
     }
   };
 
-  const nextMedication = activities.find(t => t.type?.toLowerCase() === 'med' && t.status !== 'Completed');
+  // ✅ ค้นหายาตัวถัดไปที่สถานะยังไม่ใช่ 'Taken' (อ้างอิงสถานะจาก MongoDB ของคุณ)
+  const nextMedication = meds.find(m => m.status !== 'Taken');
 
   if (initialLoading || dbLoading) return <LoadingView />;
 
@@ -93,14 +102,13 @@ export default function NurseTasksScreen({ route, navigation }) {
               <TaskItem 
                 key={task._id} 
                 title={task.topic} 
-                time={task.startTime || '--:--'}
+                time={task.startTime || '--:--'} 
                 completed={task.status === 'Completed'}
-                // เรียกฟังก์ชันอัปเดตทันที
                 onToggle={() => handleToggleTask(task._id, task.status)} 
               />
             ))
           ) : (
-            <Text style={styles.emptyText}>ไม่มีรายการงานสำหรับวันนี้</Text>
+            <Text style={styles.emptyText}>ไม่มีรายการงานสำหรับคุณ {elderName}</Text>
           )}
           
           <TouchableOpacity
@@ -111,19 +119,25 @@ export default function NurseTasksScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Medication Reminder */}
+        {/* ✅ Medication Reminder ที่ดึงข้อมูลจาก meds state */}
         <View style={styles.reminderCard}>
           <View style={styles.reminderHeader}>
             <Ionicons name="medkit" size={20} color="white" />
             <Text style={styles.reminderTitle}>Medication Reminder</Text>
           </View>
           <Text style={styles.reminderSub}>
-            {nextMedication ? "Next dose scheduled" : "No pending medication"}
+            {nextMedication ? "Next dose scheduled" : "All medications taken"}
           </Text>
           <View style={styles.medRow}>
-            <View>
-              <Text style={styles.medName}>{elderName}</Text>
-              <Text style={styles.medDetail}>{nextMedication?.title || 'All completed'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.medName}>
+                {nextMedication ? nextMedication.name : 'Completed'}
+              </Text>
+              <Text style={styles.medDetail}>
+                {nextMedication 
+                  ? `${nextMedication.quantity} ${nextMedication.unit}` 
+                  : 'No pending doses for today'}
+              </Text>
             </View>
             <Text style={styles.medTime}>{nextMedication?.time || '--:--'}</Text>
           </View>
@@ -135,7 +149,6 @@ export default function NurseTasksScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
         <View style={{ marginTop: 24 }}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionGrid}>
@@ -152,7 +165,7 @@ export default function NurseTasksScreen({ route, navigation }) {
             <QuickActionButton
               label="Calculate"
               icon="calculator-outline"
-              onPress={() => navigation.navigate('TDEECalculator')}
+              onPress={() => navigation.navigate('TDEECalculator', { elderlyId: elderId, elderName: elderName })}
             />
             <QuickActionButton
               label="Meals"
@@ -184,7 +197,7 @@ const styles = StyleSheet.create({
   reminderSub: { color: '#E1BEE7', fontSize: 12, marginBottom: 16 },
   medRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   medName: { color: 'white', fontWeight: 'bold', fontSize: 17 },
-  medTime: { color: 'white', fontSize: 14 },
+  medTime: { color: 'white', fontSize: 18, fontWeight: 'bold' },
   medDetail: { color: '#E1BEE7', fontSize: 14, marginTop: 4 },
   manageBtn: { backgroundColor: 'white', padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 16 },
   manageBtnText: { color: '#9C27B0', fontWeight: 'bold' },

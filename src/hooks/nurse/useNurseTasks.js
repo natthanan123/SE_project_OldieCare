@@ -9,9 +9,19 @@ export function useNurseTasks(elderId) {
   const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
-      // เพิ่มความปลอดภัย: ถ้าไม่มี elderId ให้ส่ง null เข้าไป หรือดึงข้อมูลภาพรวมแทน
       const data = await getTasksByElderId(elderId || null); 
-      setTasks(data || []);
+
+      // ✅ ทำการ Mapping ข้อมูลจาก MongoDB ให้ตรงกับที่ UI ต้องการใช้
+      const formattedData = (data || []).map(item => ({
+        id: item._id,                    // MongoDB ใช้ _id
+        title: item.topic || 'No Title', // แปลง topic เป็น title
+        time: item.startTime || '--:--', // แปลง startTime เป็น time
+        endTime: item.endTime || '',     // ดึง endTime มาด้วย
+        completed: item.status === 'Completed', // เช็คสถานะ
+        ...item                          // เก็บข้อมูลเดิมไว้เผื่อเรียกใช้อย่างอื่น
+      }));
+
+      setTasks(formattedData);
     } catch (e) {
       console.error("Load Tasks Error:", e);
     } finally {

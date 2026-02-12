@@ -5,21 +5,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
-import { deleteTask } from '../../../services/nurseService'; // นำเข้าฟังก์ชันลบ
+import { deleteTask } from '../../../services/nurseService'; 
 import LoadingView from '../../../components/common/LoadingView';
 
 export default function SchedulesScreen({ route, navigation }) {
+  // รับพารามิเตอร์จากหน้าก่อนหน้า
   const elderId = route.params?.elderId || null;
   const elderName = route.params?.elderName || 'ภาพรวมงานทั้งหมด';
   const showBackButton = !!elderId;
 
+  // ใช้ Hook ที่มีการ Mapping ข้อมูลเรียบร้อยแล้ว
   const { tasks, loading, loadTasks } = useNurseTasks(elderId);
 
   useFocusEffect(
     useCallback(() => {
       loadTasks();
-      return () => navigation.setParams({ elderId: undefined, elderName: undefined });
-    }, [loadTasks, navigation])
+      // ไม่ควรล้าง params ทันทีเพื่อป้องกัน Error ตอนกดย้อนกลับ
+    }, [loadTasks])
   );
 
   const getCurrentDate = () => {
@@ -30,11 +32,11 @@ export default function SchedulesScreen({ route, navigation }) {
 
   const getStatusColor = (item) => {
     if (item.completed) return '#E0E0E0'; 
-    if (item.title.toLowerCase().includes('vital')) return '#4CAF50'; 
+    if (item.title?.toLowerCase().includes('vital')) return '#4CAF50'; 
     return '#2FA4E7'; 
   };
 
-  // ฟังก์ชันจัดการการลบงานจริง
+  // ฟังก์ชันจัดการการลบงานจริงผ่าน API
   const handleDelete = (taskId) => {
     Alert.alert("ลบงาน", "คุณต้องการลบงานนี้ใช่หรือไม่?", [
       { text: "ยกเลิก", style: "cancel" },
@@ -42,8 +44,12 @@ export default function SchedulesScreen({ route, navigation }) {
         text: "ลบ",
         style: "destructive",
         onPress: async () => {
-          await deleteTask(taskId); // เรียกใช้ service ลบข้อมูล
-          loadTasks(); // รีเฟรชหน้าจอ
+          try {
+            await deleteTask(taskId); 
+            loadTasks(); // รีเฟรชรายการหลังจากลบสำเร็จ
+          } catch (error) {
+            Alert.alert("Error", "ไม่สามารถลบงานได้ในขณะนี้");
+          }
         }
       }
     ]);
@@ -60,7 +66,7 @@ export default function SchedulesScreen({ route, navigation }) {
 
       <TouchableOpacity
         style={[styles.swipeActionBtn, { backgroundColor: '#FF5252' }]}
-        onPress={() => handleDelete(item.id)} // เรียก handleDelete ตรงนี้
+        onPress={() => handleDelete(item.id)} // item.id มาจาก item._id ที่แมปไว้
       >
         <Ionicons name="trash" size={20} color="white" />
       </TouchableOpacity>
@@ -76,14 +82,13 @@ export default function SchedulesScreen({ route, navigation }) {
           <View style={styles.headerRow}>
             {showBackButton ? (
               <TouchableOpacity 
-                onPress={() => navigation.navigate('NurseTasks', { elderId, elderName })} 
+                onPress={() => navigation.goBack()} 
                 style={styles.backButton}
               >
                 <Ionicons name="arrow-back" size={24} color="#333" />
               </TouchableOpacity>
             ) : <View style={{ width: 24 }} />}
             <Text style={styles.headerTitle}>Schedule</Text>
-            {/* นำกระดิ่งแจ้งเตือนออกตามคำขอ */}
             <View style={{ width: 24 }} /> 
           </View>
 
@@ -97,6 +102,9 @@ export default function SchedulesScreen({ route, navigation }) {
           data={tasks}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>ไม่มีตารางงานสำหรับวันนี้</Text>
+          }
           renderItem={({ item }) => (
             <Swipeable renderRightActions={() => renderRightActions(item)}>
               <View style={[styles.taskCard, { borderColor: getStatusColor(item) + '40' }]}>
@@ -104,13 +112,16 @@ export default function SchedulesScreen({ route, navigation }) {
 
                 <View style={styles.cardInfo}>
                   <View style={styles.timeRow}>
-                    {/* แก้ไขให้แสดงเวลาเริ่ม และเวลาสิ้นสุดที่ถูกต้อง */}
-                    <Text style={styles.timeText}>{item.time} - {item.endTime || item.time}</Text>
+                    {/* แสดงเวลาที่ดึงมาจาก startTime ของ MongoDB */}
+                    <Text style={styles.timeText}>
+                        {item.time} {item.endTime ? `- ${item.endTime}` : ''}
+                    </Text>
                     <Text style={[styles.statusLabel, { color: getStatusColor(item) }]}>
                       {item.completed ? 'Completed' : 'Upcoming'}
                     </Text>
                   </View>
 
+                  {/* แสดงหัวข้อที่ดึงมาจาก topic ของ MongoDB */}
                   <Text style={styles.taskTitle}>{item.title}</Text>
 
                   <View style={styles.elderInfo}>
@@ -125,7 +136,7 @@ export default function SchedulesScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('AddTask')}
+          onPress={() => navigation.navigate('AddTask', { elderId, elderName })}
         >
           <Ionicons name="add" size={32} color="white" />
         </TouchableOpacity>
@@ -174,6 +185,7 @@ const styles = StyleSheet.create({
   taskTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   elderInfo: { flexDirection: 'row', alignItems: 'center' },
   elderName: { fontSize: 12, color: '#999', marginLeft: 5 },
+  emptyText: { textAlign: 'center', color: '#999', marginTop: 40 },
   fab: {
     position: 'absolute',
     bottom: 30,
@@ -185,9 +197,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
-    shadowColor: '#73C7FF',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
   },
   swipeActionsContainer: { flexDirection: 'row', width: 120, marginBottom: 16, marginLeft: 10 },
   swipeActionBtn: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 16, marginLeft: 8 },
