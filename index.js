@@ -100,7 +100,7 @@ app.post(
       }
       
 
-const upload = multer({ storage });
+
       // สร้าง User
       const user = new User({
         name,
