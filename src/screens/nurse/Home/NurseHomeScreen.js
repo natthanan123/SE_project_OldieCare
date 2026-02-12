@@ -1,19 +1,47 @@
-import React from 'react'; // แนะนำให้ import React ไว้เสมอ
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
+import { getAssignedElderly } from '../../../services/apiClient'; 
 
-import HeaderGreeting from '../../../components/nurse/HeaderGreeting';
+import HeaderGreeting from '../../../components/nurse/HeaderGreeting';   
 import SOSAlertCard from '../../../components/nurse/SOSAlertCard';
 import ElderCard from '../../../components/nurse/ElderCard';
 import QuickActionButton from '../../../components/nurse/QuickActionButton';
 import LoadingView from '../../../components/common/LoadingView';
 import ErrorView from '../../../components/common/ErrorView';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function NurseHomeScreen({ navigation }) {
-  const { greeting, sosAlert, elders, loading, taskCount, error } = useNurseHome();
+  const { greeting, sosAlert, loading: hookLoading, taskCount, error: hookError } = useNurseHome();
 
-  if (loading) return <LoadingView />;
-  if (error) return <ErrorView message={error} />;
+  // 1. ID พยาบาลคงเดิมเพื่อการทดสอบ
+  const NURSE_ID = "6989acf7f8bd7b80f2ac0a56"; 
+
+  const [assignedElders, setAssignedElders] = useState([]);
+  const [dbLoading, setDbLoading] = useState(true);
+
+  const fetchMyPatients = async () => {
+    try {
+      setDbLoading(true);
+      const data = await getAssignedElderly(NURSE_ID); 
+      setAssignedElders(data);
+      console.log("LOG รายชื่อผู้สูงอายุที่ได้รับมอบหมาย:", data); // ตรวจสอบที่ Terminal
+    } catch (error) {
+      console.error("Fetch Patients Error:", error);
+      setAssignedElders([]);
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyPatients();
+    }, [])
+  );
+
+  if (hookLoading || dbLoading) return <LoadingView />;
+  if (hookError) return <ErrorView message={hookError} />;
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -24,7 +52,6 @@ export default function NurseHomeScreen({ navigation }) {
         />
       </View>
 
-      {/* Render SOS Alert เฉพาะเมื่อมีข้อมูลจริง */}
       {sosAlert && (
         <View style={styles.sectionMargin}>
           <SOSAlertCard
@@ -37,25 +64,32 @@ export default function NurseHomeScreen({ navigation }) {
 
       <View style={styles.sectionMargin}>
         <View style={styles.rowBetween}>
-          <Text style={styles.sectionTitle}>Elderies</Text>
-          <Text style={styles.taskText}>{taskCount || 0} Tasks</Text>
+          <Text style={styles.sectionTitle}>My Patients</Text>
+          <Text style={styles.taskText}>{assignedElders.length} Persons</Text>
         </View>
       </View>
 
-      <View>
-        {Array.isArray(elders) && elders.map((elder) => (
-          <ElderCard
-            key={elder.id}
-            name={elder.name || ''}
-            age={elder.age || ''}
-            conditions={elder.conditions || []}
-            // เพิ่มบรรทัดนี้เพื่อให้กดได้
-            onPress={() => navigation.navigate('NurseTasks', {
-              elderId: elder.id,
-              elderName: elder.name
-            })}
-          />
-        ))}
+      <View style={{ paddingHorizontal: 16 }}>
+        {assignedElders.length > 0 ? (
+          assignedElders.map((elder) => (
+            <ElderCard
+              key={elder._id} 
+              name={elder.name || 'Unknown'}
+              age={elder.age || 'N/A'}
+              // ✏️ แก้จาก elder.conditions เป็น elder.medicalConditions ตามใน MongoDB
+              conditions={elder.medicalConditions || []} 
+              onPress={() => navigation.navigate('NurseTasks', {
+                elderId: elder._id,
+                elderName: elder.name
+              })}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>ไม่มีรายชื่อผู้สูงอายุที่ได้รับมอบหมาย</Text>
+            <Text style={styles.emptySubText}>ID: {NURSE_ID}</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.sectionMargin}>
@@ -82,39 +116,31 @@ export default function NurseHomeScreen({ navigation }) {
   );
 }
 
+// ... styles คงเดิมตามที่คุณส่งมา ...
 const styles = StyleSheet.create({
-  scrollContainer: {
-    paddingBottom: 32,
-  },
+  scrollContainer: { paddingBottom: 32, backgroundColor: '#F8F9FA' },
   headerContainer: {
     backgroundColor: '#2FA4E7',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    paddingVertical: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  sectionMargin: {
-    marginTop: 16,
-    paddingHorizontal: 16, // เพิ่ม padding เพื่อความสวยงาม
+  sectionMargin: { marginTop: 24, paddingHorizontal: 16 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontWeight: 'bold', fontSize: 18, color: '#333' },
+  taskText: { color: '#2FA4E7', fontWeight: '600' },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 12 },
+  emptyContainer: { 
+    padding: 30, 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    borderRadius: 20, 
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#EEE',
+    borderStyle: 'dashed'
   },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#333',
-  },
-  taskText: {
-    color: '#2FA4E7',
-    fontSize: 16,
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
+  emptyText: { color: '#999', fontSize: 15 },
+  emptySubText: { color: '#CCC', fontSize: 12, marginTop: 5 }
 });

@@ -1,8 +1,12 @@
-import React, { useCallback } from 'react';
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
+
+// นำเข้าฟังก์ชันจาก apiClient
+import { getActivities, updateActivityStatus } from '../../../services/apiClient'; 
+
 import TaskItem from '../../../components/nurse/TaskItem';
 import HeaderGreeting from '../../../components/nurse/HeaderGreeting';
 import SOSAlertCard from '../../../components/nurse/SOSAlertCard';
@@ -12,18 +16,53 @@ import { useFocusEffect } from '@react-navigation/native';
 
 export default function NurseTasksScreen({ route, navigation }) {
   const { elderId, elderName } = route.params;
-  const { tasks, loading, loadTasks, toggleTaskStatus } = useNurseTasks(elderId);
+  const { loading: initialLoading } = useNurseTasks(elderId);
   const { sosAlert } = useNurseHome();
+
+  const [activities, setActivities] = useState([]);
+  const [dbLoading, setDbLoading] = useState(true);
+
+  // ฟังก์ชันโหลดข้อมูล
+  const loadDataFromApi = async () => {
+    try {
+      const data = await getActivities();
+      const elderTasks = data.filter(item => item.elderly === elderId || !item.elderly);
+      setActivities(elderTasks);
+    } catch (error) {
+      console.error("Load Data Error:", error);
+    } finally {
+      setDbLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
-      loadTasks();
-    }, [loadTasks])
+      loadDataFromApi();
+    }, [elderId])
   );
 
-  const nextMedication = tasks.find(t => t.type === 'med' && !t.completed);
+  // ฟังก์ชันจัดการเมื่อกดติ๊กถูก (Update ทันทีไม่มี Check)
+  const handleToggleTask = async (taskId, currentStatus) => {
+    try {
+      const newStatus = currentStatus === 'Completed' ? 'Pending' : 'Completed';
+      
+      // 1. อัปเดตที่ Backend (MongoDB)
+      await updateActivityStatus(taskId, newStatus);
+      
+      // 2. อัปเดต UI ทันทีเพื่อให้ผู้ใช้เห็นการเปลี่ยนแปลง
+      setActivities(prev => 
+        prev.map(task => 
+          task._id === taskId ? { ...task, status: newStatus } : task
+        )
+      );
+    } catch (error) {
+      Alert.alert("Error", "ไม่สามารถอัปเดตสถานะได้");
+    }
+  };
 
-  if (loading) return <LoadingView />;
+  const nextMedication = activities.find(t => t.type?.toLowerCase() === 'med' && t.status !== 'Completed');
+
+  if (initialLoading || dbLoading) return <LoadingView />;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -31,37 +70,48 @@ export default function NurseTasksScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <HeaderGreeting text={`Tasks for ${elderName}`} taskCount={null} />
+        <HeaderGreeting text={`Tasks for ${elderName}`} taskCount={activities.length} />
       </View>
 
       <View style={styles.content}>
         {sosAlert && (
-          <View style={{ marginBottom: 20 }}>
-            <SOSAlertCard
-              elderName={sosAlert.elderName || ''}
-              room={sosAlert.room || ''}
-              onRespond={() => navigation.navigate('Emergency')}
-            />
-          </View>
+          <SOSAlertCard
+            elderName={sosAlert.elderName}
+            room={sosAlert.room}
+            onRespond={() => navigation.navigate('Emergency')}
+          />
         )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Tasks</Text>
-          <Text style={styles.taskCount}>{tasks.length} Tasks</Text>
+          <Text style={styles.taskCount}>{activities.length} Tasks</Text>
         </View>
 
         <View style={styles.card}>
-          {tasks.map(task => (
-            <TaskItem key={task.id} {...task} onToggle={() => toggleTaskStatus(task.id)} />
-          ))}
+          {activities.length > 0 ? (
+            activities.map(task => (
+              <TaskItem 
+                key={task._id} 
+                title={task.topic} 
+                time={task.startTime || '--:--'}
+                completed={task.status === 'Completed'}
+                // เรียกฟังก์ชันอัปเดตทันที
+                onToggle={() => handleToggleTask(task._id, task.status)} 
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>ไม่มีรายการงานสำหรับวันนี้</Text>
+          )}
+          
           <TouchableOpacity
             style={styles.viewAllBtn}
             onPress={() => navigation.navigate('Schedules', { elderId, elderName })}
           >
-            <Text style={styles.viewAllText}>View All Tasks</Text>
+            <Text style={styles.viewAllText}>View All Schedules</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Medication Reminder */}
         <View style={styles.reminderCard}>
           <View style={styles.reminderHeader}>
             <Ionicons name="medkit" size={20} color="white" />
@@ -70,7 +120,6 @@ export default function NurseTasksScreen({ route, navigation }) {
           <Text style={styles.reminderSub}>
             {nextMedication ? "Next dose scheduled" : "No pending medication"}
           </Text>
-
           <View style={styles.medRow}>
             <View>
               <Text style={styles.medName}>{elderName}</Text>
@@ -78,44 +127,37 @@ export default function NurseTasksScreen({ route, navigation }) {
             </View>
             <Text style={styles.medTime}>{nextMedication?.time || '--:--'}</Text>
           </View>
-
-          {/* แก้ไข: ส่งทั้ง elderId และ elderName ไปยังหน้า Meds */}
           <TouchableOpacity
             style={styles.manageBtn}
-            onPress={() => navigation.navigate('Meds', {
-              elderId: elderId,
-              elderName: elderName // ต้องมั่นใจว่าส่งชื่อไปด้วย
-            })}
+            onPress={() => navigation.navigate('Meds', { elderId, elderName })}
           >
             <Text style={styles.manageBtnText}>Manage Medications</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Quick Actions */}
         <View style={{ marginTop: 24 }}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionGrid}>
-            <QuickActionButton 
-              label="Care Report" 
-              icon="document-text-outline" 
-              onPress={() => navigation.navigate('CareReport', { 
-                elderName: elderName,
-                elderId: elderId 
-              })}
+            <QuickActionButton
+              label="Care Report"
+              icon="document-text-outline"
+              onPress={() => navigation.navigate('CareReport', { elderName, elderId })}
             />
-            <QuickActionButton 
-              label="Emergency" 
-              icon="warning-outline" 
-              onPress={() => navigation.navigate('Emergency')} 
+            <QuickActionButton
+              label="Emergency"
+              icon="warning-outline"
+              onPress={() => navigation.navigate('Emergency')}
             />
-            <QuickActionButton 
-              label="Calculate" 
-              con="calculator-outline" 
-              onPress={() => navigation.navigate('TDEECalculator')} 
+            <QuickActionButton
+              label="Calculate"
+              icon="calculator-outline"
+              onPress={() => navigation.navigate('TDEECalculator')}
             />
-            <QuickActionButton 
-              label="Meals" 
-              icon="restaurant-outline" 
-              onPress={() => navigation.navigate('Meals')} 
+            <QuickActionButton
+              label="Meals"
+              icon="restaurant-outline"
+              onPress={() => navigation.navigate('Meals')}
             />
           </View>
         </View>
@@ -135,6 +177,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 3 },
   viewAllBtn: { backgroundColor: '#E3F2FD', padding: 12, borderRadius: 12, alignItems: 'center', marginTop: 12 },
   viewAllText: { color: '#2FA4E7', fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', color: '#999', padding: 20 },
   reminderCard: { backgroundColor: '#9C27B0', borderRadius: 20, padding: 20, marginTop: 20 },
   reminderHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   reminderTitle: { color: 'white', fontWeight: 'bold', fontSize: 16, marginLeft: 8 },
