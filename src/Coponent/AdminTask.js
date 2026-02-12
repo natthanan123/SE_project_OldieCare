@@ -10,6 +10,7 @@ const navigate = useNavigate();
 
 const [tasks, setTasks] = useState([]);
 const [nurses, setNurses] = useState([]);
+const [loading, setLoading] = useState(false);
 
 const [elderlies, setElderlies] = useState([]);
 const [selectedElderly, setSelectedElderly] = useState(null);
