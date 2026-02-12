@@ -1,18 +1,22 @@
+// routes/Put.js
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-// ✅ นำเข้า Model ทั้งสองตัวเพื่อใช้งาน
+
+// นำเข้า Model เพื่อติดต่อกับฐานข้อมูล
 const Elderly = require('../models/elderlies'); 
 const Activity = require('../models/Activity'); 
+const Medication = require('../models/Medication'); //
 
-// 1. API สำหรับ Admin มอบหมายพยาบาลให้ผู้สูงอายุ
-router.put('/api/elderlies/assign-nurse', async (req, res) => {
+// 1. [PUT] สำหรับ Admin มอบหมายพยาบาลให้ผู้สูงอายุ
+// URL: PUT /api/elderlies/assign-nurse
+router.put('/elderlies/assign-nurse', async (req, res) => {
     try {
         const { elderlyId, nurseId } = req.body; 
 
         const updatedElderly = await Elderly.findByIdAndUpdate(
             elderlyId,
-            { assignedNurse: new mongoose.Types.ObjectId(nurseId) }, // ✅ ใช้ ObjectId ตามที่ตกลงกัน
+            { assignedNurse: new mongoose.Types.ObjectId(nurseId) },
             { new: true }
         );
 
@@ -25,8 +29,9 @@ router.put('/api/elderlies/assign-nurse', async (req, res) => {
     }
 });
 
-// 2. API สำหรับพยาบาลอัปเดตสถานะกิจกรรม (เช่น Pending -> Completed)
-router.put('/api/activities/:id', async (req, res) => {
+// 2. [PUT] สำหรับพยาบาลอัปเดตสถานะงาน (เช่น Pending -> Completed)
+// URL: PUT /api/activities/:id
+router.put('/activities/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -47,6 +52,57 @@ router.put('/api/activities/:id', async (req, res) => {
         res.json(updatedActivity);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+// 3. [POST] สำหรับสร้างกิจกรรมใหม่ (Add Task)
+// URL: POST /api/activities ✅ แก้ปัญหา Error 404 ที่นี่
+router.post('/activities', async (req, res) => {
+    try {
+        // รับข้อมูลจากแอป (elderly, topic, startTime, etc.)
+        const newActivity = new Activity(req.body);
+        await newActivity.save();
+        res.status(201).json(newActivity);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// 4. [PUT] สำหรับอัปเดตสถานะการกินยา (เช่น Upcoming -> Taken)
+// URL: PUT /api/medications/:id
+router.put('/medications/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'รูปแบบ ID ยาไม่ถูกต้อง' });
+        }
+
+        const updatedMed = await Medication.findByIdAndUpdate(
+            id,
+            { status: status },
+            { new: true }
+        );
+
+        if (!updatedMed) {
+            return res.status(404).json({ message: 'ไม่พบข้อมูลยา' });
+        }
+        res.json(updatedMed);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. [POST] สำหรับเพิ่มข้อมูลยาใหม่
+// URL: POST /api/medications
+router.post('/medications', async (req, res) => {
+    try {
+        const newMed = new Medication(req.body);
+        await newMed.save();
+        res.status(201).json(newMed);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 });
 
