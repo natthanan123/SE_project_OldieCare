@@ -1,35 +1,49 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { COLORS } from '../theme';
+import { COLORS } from '../theme/colors';
 
-export const MedItem = ({ name, time, status }) => {
-  const isTaken = status === 'taken';
+function badgeColor(status) {
+  switch ((status || '').toLowerCase()) {
+    case 'taken':
+    case 'done':
+      return COLORS.success;
+    case 'missed':
+    case 'late':
+      return COLORS.danger;
+    default:
+      return COLORS.warning;
+  }
+}
+
+export function MedItem({ name, time, status }) {
+  const color = badgeColor(status);
   return (
-    <View style={[styles.card, isTaken ? styles.takenBorder : styles.pendingBorder]}>
-      <View>
-        <Text style={[styles.name, isTaken && { color: COLORS.success }]}>{name}</Text>
-        <Text style={styles.time}>{time}</Text>
+    <View style={styles.item}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.name}>{name || 'Medication'}</Text>
+        <Text style={styles.time}>{time || '-'}</Text>
       </View>
-      <View style={[styles.dot, { backgroundColor: isTaken ? COLORS.success : COLORS.warning }]} />
+      <View style={[styles.badge, { backgroundColor: color }]}> 
+        <Text style={styles.badgeText}>{(status || 'pending').toUpperCase()}</Text>
+      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  card: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    padding: 15, 
-    borderRadius: 15, 
+  item: {
     backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
-    borderColor: COLORS.border
   },
-  takenBorder: { borderColor: COLORS.success, backgroundColor: '#F0FFF4' },
-  pendingBorder: { borderColor: COLORS.border },
-  name: { fontWeight: 'bold', color: COLORS.textMain },
-  time: { fontSize: 12, color: COLORS.textSub },
-  dot: { width: 10, height: 10, borderRadius: 5 }
+  name: { fontSize: 16, fontWeight: '600', color: COLORS.textMain },
+  time: { fontSize: 13, color: COLORS.textSub, marginTop: 2 },
+  badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  badgeText: { color: COLORS.white, fontWeight: '700', fontSize: 12 },
 });

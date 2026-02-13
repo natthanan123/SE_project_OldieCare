@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
-import { COLORS } from '../theme';
+import { COLORS } from '../theme/colors';
 import { Send } from 'lucide-react-native';
 import { getMessages, sendMessage } from '../api/client';
 

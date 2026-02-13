@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { COLORS } from '../theme';
+import { COLORS } from '../theme/colors';
 import { getThreads } from '../api/client';
 
 export default function ChatScreen({ navigation }) {

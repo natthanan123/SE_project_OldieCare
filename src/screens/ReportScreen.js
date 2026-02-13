@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import { COLORS } from '../theme';
+import { COLORS } from '../theme/colors';
 import { getReports } from '../api/client';
 
 export default function ReportScreen() {
