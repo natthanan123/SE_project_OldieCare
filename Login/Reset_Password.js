@@ -1,45 +1,63 @@
-// ⏳ COMMENTED: ระบบลืมรหัส (Forgot Password) ยังไม่เสร็จ - temporarily disabled
+const express = require('express');
+const router = express.Router();
+const User = require('../Model/User');
+const { validatePasswordSchema } = require('../Utils/validators');
 
-// const mongoose = require('mongoose');
-// const { hashPassword } = require('../Utils/passwordHelper');
-//
-// const resetPasswordSchema = new mongoose.Schema({
-//   userId: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: true,
-//     unique: true
-//   },
-//   password: {
-//     type: String,
-//     required: false,
-//     select: false
-//   },
-//   resetPasswordToken: {
-//     type: String,
-//     default: null
-//   },
-//   resetPasswordExpire: {
-//     type: Date,
-//     default: null
-//   },
-//   createdAt: {
-//     type: Date,
-//     default: Date.now
-//   }
-// });
-//
-// // Hash password if modified
-// resetPasswordSchema.pre('save', async function(next) {
-//   if (!this.isModified('password')) return next();
-//   try {
-//     this.password = await hashPassword(this.password);
-//     next();
-//   } catch (err) {
-//     next(err);
-//   }
-// });
-//
-// module.exports = mongoose.model('ResetPassword', resetPasswordSchema);
+/**
+ * POST /api/reset-password
+ * body:
+ * {
+ *   "identifier": "username หรือ email",
+ *   "newPassword": "Password123!"
+ * }
+ */
+router.post('/api/reset-password', async (req, res) => {
+  try {
+    const { identifier, newPassword } = req.body;
 
-module.exports = null; // Disabled
+    if (!identifier || !newPassword) {
+      return res.status(400).json({
+        message: "identifier and newPassword are required"
+      });
+    }
+
+    // validate password format
+    if (!validatePasswordSchema(newPassword)) {
+      return res.status(400).json({
+        message: "Password format invalid"
+      });
+    }
+
+    // หา user จาก username หรือ email
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { name: identifier } // name = username
+      ]
+    }).select('+password');
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found (invalid email or username)"
+      });
+    }
+
+    // ตั้งรหัสใหม่
+    user.password = newPassword; // pre('save') จะ hash ให้
+    await user.save();
+
+    res.json({
+      message: "Password reset successfully"
+    });
+
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
+  }
+});
+
+module.exports = router;
+

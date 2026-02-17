@@ -10,6 +10,7 @@ const getRoutes = require('./routes/Get');
 const putRoutes = require('./routes/Put');
 const deleteRoutes = require('./routes/Delete');
 const authRoutes = require('./Login/Auth');
+const resetPasswordRoute = require('./Login/resetPassword');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +36,7 @@ app.use(getRoutes);
 app.use(putRoutes);
 app.use(deleteRoutes);
 app.use(authRoutes);
+app.use(resetPasswordRoute);
 
 // Health check
 app.get('/api/health', (req, res) => {
