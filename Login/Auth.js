@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../Model/User');
-const { generateToken, refreshToken } = require('../Login/tokenHandler');
+const { generateToken, refreshToken } = require('./tokenHandler');
 
-router.post('/login', async (req, res) => {
+// ================= LOGIN =================
+router.post('/api/auth/login', async (req, res) => {
   try {
     const { identifier, password } = req.body;
 
@@ -15,17 +16,22 @@ router.post('/login', async (req, res) => {
       $or: [{ email: identifier }, { name: identifier }]
     }).select('+password');
 
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return res.status(401).json({ message: 'Wrong password' });
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Wrong password' });
+    }
 
     const tokenData = generateToken(user._id, user.role);
 
     const userObj = user.toObject();
     delete userObj.password;
 
-    res.json({
+    return res.json({
       message: 'Login success',
       user: userObj,
       token: tokenData.token,
@@ -35,17 +41,25 @@ router.post('/login', async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ message: 'Login failed', error: err.message });
+    console.error(err);
+    return res.status(500).json({ message: 'Login failed', error: err.message });
   }
 });
 
-router.post('/refresh-token', (req, res) => {
+// ================= REFRESH TOKEN =================
+router.post('/api/auth/refresh-token', (req, res) => {
   try {
     const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: 'Token required' });
+    }
+
     const newTokenData = refreshToken(token);
-    res.json(newTokenData);
+    return res.json(newTokenData);
+
   } catch (err) {
-    res.status(401).json({ message: err.message });
+    return res.status(401).json({ message: err.message });
   }
 });
 
