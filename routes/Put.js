@@ -285,6 +285,45 @@ router.put('/api/elderly/assign-nurse', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+// ✏️ Deselect Nurse ออกจาก Elderly
+router.put('/api/elderly/deselect-nurse', async (req, res) => {
+  try {
+    const { elderlyId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(elderlyId)) {
+      return res.status(400).json({ message: 'Invalid elderly id' });
+    }
+
+    const elderly = await Elderly.findById(elderlyId);
+    if (!elderly) {
+      return res.status(404).json({ message: 'Elderly not found' });
+    }
+
+    // ถ้าไม่มี nurse อยู่แล้ว
+    if (!elderly.assignedNurse) {
+      return res.status(400).json({ message: 'Elderly has no assigned nurse' });
+    }
+
+    const nurse = await Nurse.findById(elderly.assignedNurse);
+    if (nurse) {
+      nurse.patientCount = Math.max(0, (nurse.patientCount || 0) - 1);
+      await nurse.save();
+    }
+
+    // set assignedNurse เป็น null
+    elderly.assignedNurse = null;
+    await elderly.save();
+
+    res.status(200).json({
+      message: 'Nurse deselected successfully',
+      elderly
+    });
+
+  } catch (err) {
+    console.error('Deselect Nurse Error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 // ===== Admin update =====
 router.put('/api/admins/:id', upload.single('profileImage'), async (req, res) => {
