@@ -10,7 +10,7 @@ const getRoutes = require('./routes/Get');
 const putRoutes = require('./routes/Put');
 const deleteRoutes = require('./routes/Delete');
 const authRoutes = require('./Login/Auth');
-const resetPasswordRoute = require('./Login/resetPassword');
+const resetPasswordRoute = require('./Login/Reset_Password');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
