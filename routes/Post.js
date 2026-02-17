@@ -373,33 +373,44 @@ router.post('/api/medication', authMiddleware, async (req, res) => {
 
 // ===== Admin routes =====
 // สร้าง Admin
-router.post('/api/admins', upload.single('profileImage'), async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
+router.post(
+  '/api/admins',
+  upload.fields([{ name: 'profileImage', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: 'username, email and password are required' });
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: 'username, email and password are required' });
+      }
+
+      const existing = await Admin.findOne({ $or: [{ username }, { email }] });
+      if (existing) {
+        return res.status(400).json({ message: 'Admin with given username or email already exists' });
+      }
+
+      const admin = new Admin({
+        username,
+        email,
+        password,
+        profileImage: req.files?.profileImage?.[0]?.path || null
+      });
+
+      const saved = await admin.save();
+      const adminObj = saved.toObject();
+      delete adminObj.password;
+
+      res.status(201).json({
+        message: 'Admin created successfully',
+        admin: adminObj
+      });
+
+    } catch (error) {
+      console.error('Create Admin Error:', error);
+      res.status(500).json({ message: 'Error creating admin', error: error.message });
     }
-
-    const existing = await Admin.findOne({ $or: [{ username }, { email }] });
-    if (existing) return res.status(400).json({ message: 'Admin with given username or email already exists' });
-
-    const admin = new Admin({
-      username,
-      email,
-      password,
-      profileImage: req.file?.path || null
-    });
-
-    const saved = await admin.save();
-    const adminObj = saved.toObject();
-    delete adminObj.password;
-
-    res.status(201).json({ message: 'Admin created successfully', admin: adminObj });
-  } catch (error) {
-    console.error('Create Admin Error:', error);
-    res.status(500).json({ message: 'Error creating admin', error: error.message });
   }
-});
+);
+
 
 module.exports = router;

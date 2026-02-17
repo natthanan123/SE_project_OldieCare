@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { hashPassword, comparePassword } = require('../Utils/passwordHelper');
+const { validatePasswordSchema } = require('../Utils/validators');
 
 // Admin Schema - เก็บข้อมูลผู้ดูแลระบบพื้นฐาน
 const adminSchema = new mongoose.Schema({
@@ -11,7 +12,11 @@ const adminSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
-    select: false
+    select: false,
+    validate: {
+      validator: validatePasswordSchema,
+      message: 'Password format invalid'
+  }
   },
   email: {
     type: String,
@@ -28,15 +33,9 @@ const adminSchema = new mongoose.Schema({
 });
 
 // Hash password before save
-adminSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-
-  try {
-    this.password = await hashPassword(this.password);
-    next();
-  } catch (err) {
-    next(err);
-  }
+adminSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
+  this.password = await hashPassword(this.password);
 });
 
 // compare password helper
