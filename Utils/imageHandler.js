@@ -54,7 +54,7 @@ const upload = multer({
 });
 
 // ================= Controller =================
-const uploadImages = async (req, res) => {
+const uploadImages = async (req, res, ) => {
   try {
     const result = {};
 

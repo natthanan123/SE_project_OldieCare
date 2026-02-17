@@ -5,6 +5,7 @@ const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
 const Medication = require('../MED/Medication');
+const Admin = require('../Model/Admin');
 
 // ==================== READ ROUTES ====================
 
@@ -51,7 +52,7 @@ router.get('/api/users/nurses/:id', async (req, res) => {
 router.get('/api/users/elderly', async (req, res) => {
   try {
     const elderly = await Elderly.find()
-      .populate('userId')
+      .populate('userId', '-password')
       .populate('assignedNurse');
 
     res.json(elderly);
@@ -64,7 +65,7 @@ router.get('/api/users/elderly', async (req, res) => {
 router.get('/api/users/elderly/:id', async (req, res) => {
   try {
     const elderly = await Elderly.findById(req.params.id)
-      .populate('userId')
+      .populate('userId', '-password')
       .populate('assignedNurse');
 
     if (!elderly) {
@@ -81,7 +82,7 @@ router.get('/api/users/elderly/:id', async (req, res) => {
 router.get('/api/users/relatives', async (req, res) => {
   try {
     const relatives = await Relative.find()
-      .populate('userId')
+      .populate('userId', '-password')
       .populate('elderlyId');
 
     res.json(relatives);
@@ -94,7 +95,7 @@ router.get('/api/users/relatives', async (req, res) => {
 router.get('/api/users/elderly/:elderlyId/relatives', async (req, res) => {
   try {
     const relatives = await Relative.find({ elderlyId: req.params.elderlyId })
-      .populate('userId')
+      .populate('userId', '-password')
       .populate('elderlyId');
 
     res.json(relatives);
@@ -107,7 +108,7 @@ router.get('/api/users/elderly/:elderlyId/relatives', async (req, res) => {
 router.get('/api/users/relatives/:id', async (req, res) => {
   try {
     const relative = await Relative.findById(req.params.id)
-      .populate('userId')
+      .populate('userId', '-password')
       .populate('elderlyId');
 
     if (!relative) {
@@ -137,6 +138,35 @@ router.get('/api/recommend-nurses', async (req, res) => {
 // Health check
 router.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running' });
+});
+
+// ===== Admin read routes =====
+// ดึงรายชื่อ Admin ทั้งหมด (ไม่ส่ง password)
+router.get('/api/admins', async (req, res) => {
+  try {
+    const admins = await Admin.find().select('-password');
+    res.status(200).json(admins);
+  } catch (err) {
+    console.error('GET /api/admins error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ดึง Admin คนหนึ่ง
+router.get('/api/admins/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid admin id' });
+
+    const admin = await Admin.findById(id).select('-password');
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    res.status(200).json(admin);
+  } catch (err) {
+    console.error('GET /api/admins/:id error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Test route

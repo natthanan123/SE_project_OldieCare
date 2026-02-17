@@ -1,8 +1,7 @@
-const mongoose = require('mongoose');/*
+const mongoose = require('mongoose');
 const { hashPassword, comparePassword } = require('../Utils/passwordHelper');
-const { validatePassword } = require('../Utils/validators');
-*/
-// Base User Schema
+const { validatePasswordSchema } = require('../Utils/validators');
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -21,44 +20,34 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['nurse', 'relative', 'elderly'],
     required: true
-  },/*
+  },
   password: {
     type: String,
     required: true,
     select: false,
     validate: {
-      validator: validatePassword,
-      message: 'รหัสผ่านต้อง: ≥8 ตัว, มีตัวใหญ่ (A-Z), มีตัวเลข (0-9), มีสัญลักษณ์ (!@#$%^&* ฯลฯ)'
-    }
-  },*/
+      validator: validatePasswordSchema,
+      message: 'Password format invalid'
+  }
+  },
   profileImage: {
     type: String,
-    default: null,
+    default: null
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
-/*
-// Hash password ก่อน save
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    this.password = await hashPassword(this.password);
-    next();
-  } catch (err) {
-    next(err);
-  }
+
+// 🔐 hash password ก่อน save
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
+  this.password = await hashPassword(this.password);
 });
 
-
-// Method เปรียบเทียบ password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await comparePassword(candidatePassword, this.password);
+userSchema.methods.comparePassword = function(candidatePassword) {
+  return comparePassword(candidatePassword, this.password);
 };
-*/
-const User = mongoose.model('User', userSchema);
 
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);

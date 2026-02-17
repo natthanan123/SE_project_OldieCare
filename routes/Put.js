@@ -6,6 +6,7 @@ const User = require('../Model/User');
 const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
+const Admin = require('../Model/Admin');
 
 const safeParse = (data, defaultValue) => {
   try {
@@ -40,7 +41,12 @@ router.put('/api/users/nurses/:id',
       }
 
       // ✏️ อัพเดท User fields (name, email, phone, address)
-      const { name, email, phone, address, specialization, yearsOfExperience } = req.body;
+      // ❗ ห้ามแก้ไข password ผ่าน route นี้
+      const { name, email, phone, address, specialization, yearsOfExperience, password } = req.body;
+      
+      if (password !== undefined) {
+        return res.status(403).json({ message: 'Password cannot be updated here. Please use change-password endpoint.' });
+      }
       
       const user = await User.findById(nurse.userId);
       if (user) {
@@ -111,7 +117,12 @@ router.put('/api/users/elderly/:id',
       }
 
       // ✏️ อัพเดท Elderly fields
-      const { name, email, phone, address, dateOfBirth, age, weight, height, allergies, medicalConditions, medications } = req.body;
+      // ❗ ห้ามแก้ไข password ผ่าน route นี้
+      const { name, email, phone, address, dateOfBirth, age, weight, height, allergies, medicalConditions, medications, password } = req.body;
+      
+      if (password !== undefined) {
+        return res.status(403).json({ message: 'Password cannot be updated here. Please use change-password endpoint.' });
+      }
       
       // Update User fields
       const user = await User.findById(elderly.userId);
@@ -178,7 +189,12 @@ router.put('/api/users/relatives/:id',
       }
 
       // ✏️ อัพเดท Relative fields
-      const { name, email, phone, address, relationship, relationshipDetail } = req.body;
+      // ❗ ห้ามแก้ไข password ผ่าน route นี้
+      const { name, email, phone, address, relationship, relationshipDetail, password } = req.body;
+      
+      if (password !== undefined) {
+        return res.status(403).json({ message: 'Password cannot be updated here. Please use change-password endpoint.' });
+      }
       
       // Update User fields
       const user = await User.findById(relative.userId);
@@ -267,6 +283,40 @@ router.put('/api/elderly/assign-nurse', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ===== Admin update =====
+router.put('/api/admins/:id', upload.single('profileImage'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid admin id' });
+
+    const admin = await Admin.findById(id).select('+password');
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    const { username, email, password } = req.body;
+    if (username !== undefined) admin.username = username;
+    if (email !== undefined) admin.email = email;
+    // ❗ ห้ามแก้ไข password ผ่าน route นี้ (ต้องใช้ change-password endpoint แทน)
+    if (password !== undefined && password !== '') {
+      return res.status(403).json({ message: 'Password cannot be updated here. Please use change-password endpoint.' });
+    }
+
+    if (req.file) {
+      if (admin.profileImage) {
+        try { await deleteImage(admin.profileImage); } catch (e) { console.warn('Failed to delete old admin image:', e.message); }
+      }
+      admin.profileImage = req.file.path;
+    }
+
+    const updated = await admin.save();
+    const out = updated.toObject();
+    delete out.password;
+    res.json({ message: 'Admin updated successfully', admin: out });
+  } catch (err) {
+    console.error('Update Admin Error:', err);
+    res.status(500).json({ message: 'Error updating admin', error: err.message });
   }
 });
 

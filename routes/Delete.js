@@ -6,6 +6,7 @@ const User = require('../Model/User');
 const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
+const Admin = require('../Model/Admin');
 
 // ==================== DELETE ROUTES ====================
 
@@ -182,6 +183,30 @@ router.delete('/api/users/relatives/:id', async (req, res) => {
       message: 'Error deleting relative',
       error: error.message
     });
+  }
+});
+
+
+
+// ===== Admin delete =====
+router.delete('/api/admins/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid admin id' });
+
+    const admin = await Admin.findById(id);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    // delete profile image from cloudinary if exists
+    if (admin.profileImage) {
+      try { await deleteImage(admin.profileImage); } catch (e) { console.warn('Failed to delete admin profile image:', e.message); }
+    }
+
+    await Admin.findByIdAndDelete(id);
+    res.json({ message: 'Admin deleted successfully' });
+  } catch (err) {
+    console.error('Delete Admin Error:', err);
+    res.status(500).json({ message: 'Error deleting admin', error: err.message });
   }
 });
 

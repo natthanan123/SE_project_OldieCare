@@ -9,6 +9,7 @@ const postRoutes = require('./routes/Post');
 const getRoutes = require('./routes/Get');
 const putRoutes = require('./routes/Put');
 const deleteRoutes = require('./routes/Delete');
+//const authRoutes = require('./Login/Auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,13 +20,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Import Models
-const User = require('./Model/User');
-const Nurse = require('./Model/Nurse');
-const Relative = require('./Model/Relative');
-const Elderly = require('./Model/Elderly');
-const Activity = require('./Activity/Activity');
-const Ingredient = require('./Ingredient/Ingredient'); 
 
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
@@ -40,6 +34,7 @@ app.use(postRoutes);
 app.use(getRoutes);
 app.use(putRoutes);
 app.use(deleteRoutes);
+//app.use(authRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -50,10 +45,7 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.send('hello world');
 });
-/*
-const authRoutes = require('./routes/auth');
-app.use('/api', authRoutes);
-*/
+
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError || err.message.includes('Only image')) {
