@@ -229,7 +229,7 @@ router.post(
 
       const elderly = new Elderly({
         userId: savedUser._id,
-        room: room || "-",
+        room: room || null,
         dateOfBirth: dateOfBirth || new Date(),
         age: Number(age) || 0,
         address,
