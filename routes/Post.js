@@ -206,7 +206,7 @@ router.post(
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
-      const { name, room, email, phone, password, dateOfBirth, age, assignedNurse } = req.body;
+      const { name, room, email, phone, password, dateOfBirth, age, assignedNurse , weight , height} = req.body;
 
       
 
@@ -232,6 +232,8 @@ router.post(
         room: room || null,
         dateOfBirth: dateOfBirth || new Date(),
         age: Number(age) || 0,
+        weight: Number(weight) || 0,
+        height: Number(height) || 0,
         address,
         medicalConditions,
         medications,
