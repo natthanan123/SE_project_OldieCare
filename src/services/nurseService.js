@@ -30,14 +30,39 @@ export async function getAssignedElders() {
     }
 }
 
-// 2. ฟังก์ชันดึงงานตาม ID ผู้สูงอายุ (สำหรับหน้า Schedules)
+// 2. ฟังก์ชันดึงงานตาม ID ผู้สูงอายุ
 export async function getTasksByElderId(elderId) {
-    if (USE_MOCK) {
-        return [{ _id: 't1', topic: 'Morning Medication', startTime: '08:30 AM', status: 'Completed' }];
-    }
     try {
-        const allActivities = await getActivities();
-        return elderId ? allActivities.filter(item => item.elderly === elderId) : allActivities;
+        // 1. ดึงทั้งงานและรายชื่อผู้สูงอายุที่พยาบาลคนนี้ดูแลพร้อมกัน
+        // ✏️ ตรวจสอบให้มั่นใจว่า NURSE_ID ตรงกับที่มีใน MongoDB ของคุณ
+        const NURSE_ID = "6989acf7f8bd7b80f2ac0a56"; 
+
+        const [allActivities, allElders] = await Promise.all([
+            getActivities(),
+            getAssignedElderly(NURSE_ID)
+        ]);
+
+        // 2. กรองงานตามความต้องการ (รายคน หรือ ทั้งหมด)
+        const filtered = elderId 
+            ? allActivities.filter(item => item.elderly === elderId) 
+            : allActivities;
+
+        // 3. ✅ Mapping ชื่อ: หัวใจสำคัญคือการหา Elder ที่มี ID ตรงกับใน Task
+        return filtered.map(task => {
+            // ค้นหาผู้สูงอายุโดยเทียบ ID (ตรวจสอบทั้ง ._id และ .id)
+            const elder = allElders.find(e => (e._id === task.elderly || e.id === task.elderly));
+            
+            return {
+                id: task._id,
+                title: task.topic || 'No Title',
+                time: task.startTime || '--:--',
+                endTime: task.endTime,
+                completed: task.status === 'Completed',
+                // ✅ ถ้าหา elder เจอให้ใช้ชื่อจริง ถ้าไม่เจอถึงจะขึ้นว่า 'ทั่วไป'
+                elderName: elder ? elder.name : 'ทั่วไป', 
+                elderlyId: task.elderly
+            };
+        });
     } catch (error) {
         console.error("Service Error (getTasksByElderId):", error);
         throw error;

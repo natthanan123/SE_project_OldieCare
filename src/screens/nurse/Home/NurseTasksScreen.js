@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
 
-// ✅ นำเข้า getMedications เพิ่มเติม
+// ✅ นำเข้า API สำหรับกิจกรรมและยา
 import { getActivities, updateActivityStatus, getMedications } from '../../../services/apiClient'; 
 
 import TaskItem from '../../../components/nurse/TaskItem';
@@ -21,20 +21,17 @@ export default function NurseTasksScreen({ route, navigation }) {
   const { sosAlert } = useNurseHome();
 
   const [activities, setActivities] = useState([]);
-  const [meds, setMeds] = useState([]); // ✅ เพิ่ม State สำหรับเก็บข้อมูลยา
+  const [meds, setMeds] = useState([]); 
   const [dbLoading, setDbLoading] = useState(true);
 
-  // ฟังก์ชันโหลดข้อมูลทั้ง Activities และ Medications
   const loadDataFromApi = async () => {
     try {
       setDbLoading(true);
-      // ✅ ดึงข้อมูลพร้อมกันจากทั้ง 2 คอลเลกชัน
       const [activitiesData, medsData] = await Promise.all([
         getActivities(),
         getMedications()
       ]);
       
-      // กรองเฉพาะของผู้สูงอายุคนนี้
       const elderTasks = activitiesData.filter(item => item.elderly === elderId);
       const elderMeds = medsData.filter(item => item.elderly === elderId);
       
@@ -68,7 +65,12 @@ export default function NurseTasksScreen({ route, navigation }) {
     }
   };
 
-  // ✅ ค้นหายาตัวถัดไปที่สถานะยังไม่ใช่ 'Taken' (อ้างอิงสถานะจาก MongoDB ของคุณ)
+  // ✅ 1. คำนวณจำนวนงานที่ "ยังค้างอยู่" (Pending Activities + Upcoming Meds)
+  const pendingActivitiesCount = activities.filter(t => t.status !== 'Completed').length;
+  const pendingMedsCount = meds.filter(m => m.status !== 'Taken').length;
+  const totalPending = pendingActivitiesCount + pendingMedsCount;
+
+  // ✅ 2. ค้นหายาตัวถัดไปที่ยังไม่ได้กิน
   const nextMedication = meds.find(m => m.status !== 'Taken');
 
   if (initialLoading || dbLoading) return <LoadingView />;
@@ -79,7 +81,11 @@ export default function NurseTasksScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        <HeaderGreeting text={`Tasks for ${elderName}`} taskCount={activities.length} />
+        {/* ✅ แสดงจำนวนงานที่เหลืออยู่จริงใน Header */}
+        <HeaderGreeting 
+          text={`Tasks for ${elderName}`} 
+          taskCount={totalPending} 
+        />
       </View>
 
       <View style={styles.content}>
@@ -93,7 +99,8 @@ export default function NurseTasksScreen({ route, navigation }) {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Tasks</Text>
-          <Text style={styles.taskCount}>{activities.length} Tasks</Text>
+          {/* ✅ แสดงจำนวนงานที่เหลืออยู่กำกับที่หัวข้อ Section */}
+          <Text style={styles.taskCount}>{pendingActivitiesCount} Left</Text>
         </View>
 
         <View style={styles.card}>
@@ -119,7 +126,6 @@ export default function NurseTasksScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Medication Reminder ที่ดึงข้อมูลจาก meds state */}
         <View style={styles.reminderCard}>
           <View style={styles.reminderHeader}>
             <Ionicons name="medkit" size={20} color="white" />

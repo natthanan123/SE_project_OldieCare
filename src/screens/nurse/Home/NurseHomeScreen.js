@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
-import { getAssignedElderly } from '../../../services/apiClient'; 
+// ✅ นำเข้า API สำหรับดึงกิจกรรมและยา
+import { getAssignedElderly, getActivities, getMedications } from '../../../services/apiClient'; 
 
 import HeaderGreeting from '../../../components/nurse/HeaderGreeting';   
 import SOSAlertCard from '../../../components/nurse/SOSAlertCard';
@@ -12,22 +13,46 @@ import ErrorView from '../../../components/common/ErrorView';
 import { useFocusEffect } from '@react-navigation/native';
 
 export default function NurseHomeScreen({ navigation }) {
-  const { greeting, sosAlert, loading: hookLoading, taskCount, error: hookError } = useNurseHome();
+  const { greeting, sosAlert, loading: hookLoading, error: hookError } = useNurseHome();
 
-  // 1. ID พยาบาลคงเดิมเพื่อการทดสอบ
-  const NURSE_ID = "69899e3c3081a93aa121ed07"; 
+  // ID พยาบาลสำหรับการทดสอบ
+  const NURSE_ID = "698df967cbae21794053e7cc"; 
 
   const [assignedElders, setAssignedElders] = useState([]);
+  const [totalPendingTasks, setTotalPendingTasks] = useState(0); 
   const [dbLoading, setDbLoading] = useState(true);
 
-  const fetchMyPatients = async () => {
+  const fetchHomeData = async () => {
     try {
       setDbLoading(true);
-      const data = await getAssignedElderly(NURSE_ID); 
-      setAssignedElders(data);
-      console.log("LOG รายชื่อผู้สูงอายุที่ได้รับมอบหมาย:", data); // ตรวจสอบที่ Terminal
+      
+      // ✅ 1. ดึงข้อมูลพื้นฐานทั้งหมดพร้อมกันเพื่อประสิทธิภาพ
+      const [eldersData, allActivities, allMeds] = await Promise.all([
+        getAssignedElderly(NURSE_ID),
+        getActivities(),
+        getMedications()
+      ]);
+
+      setAssignedElders(eldersData);
+
+      // ✅ 2. คำนวณจำนวนงานรวมที่ "ยังทำไม่เสร็จ"
+      const myElderIds = eldersData.map(e => e._id);
+      
+      // นับงานทั่วไปที่ไม่ใช่ 'Completed'
+      const pendingActivitiesCount = allActivities.filter(task => 
+        myElderIds.includes(task.elderly) && task.status !== 'Completed'
+      ).length;
+
+      // นับงานป้อนยาที่ไม่ใช่ 'Taken'
+      const pendingMedsCount = allMeds.filter(med => 
+        myElderIds.includes(med.elderly) && med.status !== 'Taken'
+      ).length;
+
+      // รวมจำนวนงานทั้งหมด
+      setTotalPendingTasks(pendingActivitiesCount + pendingMedsCount);
+
     } catch (error) {
-      console.error("Fetch Patients Error:", error);
+      console.error("Fetch Home Data Error:", error);
       setAssignedElders([]);
     } finally {
       setDbLoading(false);
@@ -36,7 +61,7 @@ export default function NurseHomeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchMyPatients();
+      fetchHomeData();
     }, [])
   );
 
@@ -46,9 +71,10 @@ export default function NurseHomeScreen({ navigation }) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.headerContainer}>
+        {/* ✅ แสดงจำนวนงานรวมที่คำนวณได้จริงจาก MongoDB */}
         <HeaderGreeting
           text={greeting || 'Good Morning!'}
-          taskCount={taskCount || 0}
+          taskCount={totalPendingTasks}
         />
       </View>
 
@@ -76,7 +102,6 @@ export default function NurseHomeScreen({ navigation }) {
               key={elder._id} 
               name={elder.name || 'Unknown'}
               age={elder.age || 'N/A'}
-              // ✏️ แก้จาก elder.conditions เป็น elder.medicalConditions ตามใน MongoDB
               conditions={elder.medicalConditions || []} 
               onPress={() => navigation.navigate('NurseTasks', {
                 elderId: elder._id,
@@ -116,13 +141,11 @@ export default function NurseHomeScreen({ navigation }) {
   );
 }
 
-// ... styles คงเดิมตามที่คุณส่งมา ...
 const styles = StyleSheet.create({
   scrollContainer: { paddingBottom: 32, backgroundColor: '#F8F9FA' },
   headerContainer: {
     backgroundColor: '#2FA4E7',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },

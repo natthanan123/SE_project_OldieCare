@@ -1,27 +1,39 @@
 // src/screens/nurse/Schedules/SchedulesScreen.js
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native'; // ✅ เพิ่ม useIsFocused
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
-import { deleteTask } from '../../../services/nurseService'; 
+import { deleteTask } from '../../../services/nurseService';
 import LoadingView from '../../../components/common/LoadingView';
 
 export default function SchedulesScreen({ route, navigation }) {
-  // รับพารามิเตอร์จากหน้าก่อนหน้า
-  const elderId = route.params?.elderId || null;
-  const elderName = route.params?.elderName || 'ภาพรวมงานทั้งหมด';
-  const showBackButton = !!elderId;
+  const isFocused = useIsFocused(); // ✅ ตรวจสอบว่าหน้าจอกำลังแสดงอยู่หรือไม่
 
-  // ใช้ Hook ที่มีการ Mapping ข้อมูลเรียบร้อยแล้ว
+  // ✅ 1. ตรวจสอบ Params อย่างเข้มงวด: ถ้าไม่ได้โฟกัส หรือไม่มี Id ให้เป็น null เสมอ
+  const elderId = isFocused ? (route.params?.elderId || null) : null;
+  const elderNameFromParam = isFocused ? (route.params?.elderName || null) : null;
+
+  const isIndividualMode = !!elderId;
+
+  // ✅ 2. แสดง Title ให้ถูกต้องตามโหมด
+  const displayTitle = useMemo(() => {
+    if (!isFocused) return 'Schedule';
+    return isIndividualMode ? `Schedule: ${elderNameFromParam}` : 'All Schedules';
+  }, [isFocused, isIndividualMode, elderNameFromParam]);
+
   const { tasks, loading, loadTasks } = useNurseTasks(elderId);
 
   useFocusEffect(
     useCallback(() => {
       loadTasks();
-      // ไม่ควรล้าง params ทันทีเพื่อป้องกัน Error ตอนกดย้อนกลับ
-    }, [loadTasks])
+
+      // ✅ 3. Cleanup: เมื่อออกจากหน้าจอ บังคับล้าง Params ทันที
+      return () => {
+        navigation.setParams({ elderId: undefined, elderName: undefined });
+      };
+    }, [loadTasks, navigation])
   );
 
   const getCurrentDate = () => {
@@ -31,12 +43,11 @@ export default function SchedulesScreen({ route, navigation }) {
   };
 
   const getStatusColor = (item) => {
-    if (item.completed) return '#E0E0E0'; 
-    if (item.title?.toLowerCase().includes('vital')) return '#4CAF50'; 
-    return '#2FA4E7'; 
+    if (item.completed) return '#E0E0E0';
+    if (item.title?.toLowerCase().includes('vital')) return '#4CAF50';
+    return '#2FA4E7';
   };
 
-  // ฟังก์ชันจัดการการลบงานจริงผ่าน API
   const handleDelete = (taskId) => {
     Alert.alert("ลบงาน", "คุณต้องการลบงานนี้ใช่หรือไม่?", [
       { text: "ยกเลิก", style: "cancel" },
@@ -45,8 +56,8 @@ export default function SchedulesScreen({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteTask(taskId); 
-            loadTasks(); // รีเฟรชรายการหลังจากลบสำเร็จ
+            await deleteTask(taskId);
+            loadTasks();
           } catch (error) {
             Alert.alert("Error", "ไม่สามารถลบงานได้ในขณะนี้");
           }
@@ -59,37 +70,39 @@ export default function SchedulesScreen({ route, navigation }) {
     <View style={styles.swipeActionsContainer}>
       <TouchableOpacity
         style={[styles.swipeActionBtn, { backgroundColor: '#FFC107' }]}
-        onPress={() => navigation.navigate('AddTask', { task: item, isEdit: true })}
+        onPress={() => navigation.navigate('AddTask', {
+          task: item,
+          isEdit: true,
+          elderId,
+          elderName: isIndividualMode ? elderNameFromParam : ''
+        })}
       >
         <Ionicons name="pencil" size={20} color="white" />
       </TouchableOpacity>
-
       <TouchableOpacity
         style={[styles.swipeActionBtn, { backgroundColor: '#FF5252' }]}
-        onPress={() => handleDelete(item.id)} // item.id มาจาก item._id ที่แมปไว้
+        onPress={() => handleDelete(item.id)}
       >
         <Ionicons name="trash" size={20} color="white" />
       </TouchableOpacity>
     </View>
   );
 
-  if (loading) return <LoadingView />;
+  if (loading && !tasks.length) return <LoadingView />;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            {showBackButton ? (
-              <TouchableOpacity 
-                onPress={() => navigation.goBack()} 
-                style={styles.backButton}
-              >
+            {isIndividualMode ? (
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color="#333" />
               </TouchableOpacity>
             ) : <View style={{ width: 24 }} />}
-            <Text style={styles.headerTitle}>Schedule</Text>
-            <View style={{ width: 24 }} /> 
+
+            <Text style={styles.headerTitle}>{displayTitle}</Text>
+            <View style={{ width: 24 }} />
           </View>
 
           <View style={styles.dateSelector}>
@@ -101,10 +114,6 @@ export default function SchedulesScreen({ route, navigation }) {
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>ไม่มีตารางงานสำหรับวันนี้</Text>
-          }
           renderItem={({ item }) => (
             <Swipeable renderRightActions={() => renderRightActions(item)}>
               <View style={[styles.taskCard, { borderColor: getStatusColor(item) + '40' }]}>
@@ -112,21 +121,22 @@ export default function SchedulesScreen({ route, navigation }) {
 
                 <View style={styles.cardInfo}>
                   <View style={styles.timeRow}>
-                    {/* แสดงเวลาที่ดึงมาจาก startTime ของ MongoDB */}
                     <Text style={styles.timeText}>
-                        {item.time} {item.endTime ? `- ${item.endTime}` : ''}
+                      {item.time} {item.endTime ? `- ${item.endTime}` : ''}
                     </Text>
                     <Text style={[styles.statusLabel, { color: getStatusColor(item) }]}>
                       {item.completed ? 'Completed' : 'Upcoming'}
                     </Text>
                   </View>
 
-                  {/* แสดงหัวข้อที่ดึงมาจาก topic ของ MongoDB */}
                   <Text style={styles.taskTitle}>{item.title}</Text>
 
                   <View style={styles.elderInfo}>
                     <Ionicons name="person-outline" size={14} color="#999" />
-                    <Text style={styles.elderName}>{elderName}</Text>
+                    {/* ✅ แสดงชื่อผู้สูงอายุที่ดึงมาจากข้อมูล Task แต่ละใบ */}
+                    <Text style={styles.elderName}>
+                      {item.elderName}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -136,16 +146,17 @@ export default function SchedulesScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => navigation.navigate('AddTask', { elderId, elderName })}
+          onPress={() => navigation.navigate('AddTask', {
+            elderId: isIndividualMode ? elderId : null,
+            elderName: isIndividualMode ? elderNameFromParam : ''
+          })}
         >
           <Ionicons name="add" size={32} color="white" />
         </TouchableOpacity>
       </View>
     </GestureHandlerRootView>
   );
-}
-
-const styles = StyleSheet.create({
+} const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFDFD' },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 15, backgroundColor: 'white' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -168,7 +179,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     marginBottom: 16,
-    height: 110, 
+    height: 110,
     borderWidth: 1,
     overflow: 'hidden',
     elevation: 2,

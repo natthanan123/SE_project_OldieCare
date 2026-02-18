@@ -1,7 +1,7 @@
 // src/services/apiClient.js
 import axios from 'axios';
 
-const IP_ADDRESS = '10.64.23.83'; 
+const IP_ADDRESS = '10.64.22.109'; 
 const BASE_URL = `http://${IP_ADDRESS}:5000/api`;
 
 // --- ส่วนของ User & Nurse ---

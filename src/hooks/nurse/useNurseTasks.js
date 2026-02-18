@@ -9,21 +9,32 @@ export function useNurseTasks(elderId) {
   const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
+      // ส่ง elderId ไปที่ service (ถ้าเป็น null จะเป็นการดึงงานทั้งหมด)
       const data = await getTasksByElderId(elderId || null); 
 
-      // ✅ ทำการ Mapping ข้อมูลจาก MongoDB ให้ตรงกับที่ UI ต้องการใช้
+      // ✅ ปรับการ Mapping ให้รองรับ elderName จาก Service
       const formattedData = (data || []).map(item => ({
-        id: item._id,                    // MongoDB ใช้ _id
-        title: item.topic || 'No Title', // แปลง topic เป็น title
-        time: item.startTime || '--:--', // แปลง startTime เป็น time
-        endTime: item.endTime || '',     // ดึง endTime มาด้วย
-        completed: item.status === 'Completed', // เช็คสถานะ
-        ...item                          // เก็บข้อมูลเดิมไว้เผื่อเรียกใช้อย่างอื่น
+        // ใช้ข้อมูลที่ผ่านการจัดการเบื้องต้นจาก nurseService มาแล้ว
+        id: item.id || item._id,          
+        title: item.title || item.topic || 'No Title', 
+        time: item.time || item.startTime || '--:--', 
+        endTime: item.endTime || '',     
+        completed: item.completed !== undefined 
+          ? item.completed 
+          : item.status === 'Completed', 
+        
+        // ✅ ดึงชื่อผู้สูงอายุมาเก็บไว้ใน State ของ Hook เพื่อให้หน้าจอ Schedules เรียกใช้ได้
+        elderName: item.elderName || 'ทั่วไป', 
+        elderlyId: item.elderlyId || item.elderly,
+
+        // เก็บข้อมูลดิบเผื่อเหลือเผื่อขาด
+        originalData: item 
       }));
 
       setTasks(formattedData);
     } catch (e) {
       console.error("Load Tasks Error:", e);
+      setTasks([]); // ล้างค่าเมื่อเกิด Error เพื่อป้องกันข้อมูลเก่าค้าง
     } finally {
       setLoading(false);
     }
