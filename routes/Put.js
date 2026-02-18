@@ -7,6 +7,7 @@ const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
 const Admin = require('../Model/Admin');
+const { authMiddleware , roleMiddleware} = require('../Login/authMiddleware');
 
 const safeParse = (data, defaultValue) => {
   try {
@@ -21,7 +22,7 @@ const safeParse = (data, defaultValue) => {
 // ==================== UPDATE ROUTES ====================
 
 // ✏️ อัพเดท Nurse (สำหรับ settings)
-router.put('/api/users/nurses/:id', 
+router.put('/api/users/nurses/:id', authMiddleware, roleMiddleware(['admin']),
   upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'licenseImage', maxCount: 1 },
@@ -101,7 +102,7 @@ router.put('/api/users/nurses/:id',
 );
 
 // ✏️ อัพเดท Elderly (สำหรับ settings)
-router.put('/api/users/elderly/:id',
+router.put('/api/users/elderly/:id', authMiddleware, roleMiddleware(['admin']),
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
@@ -173,7 +174,7 @@ router.put('/api/users/elderly/:id',
 );
 
 // ✏️ อัพเดท Relative (สำหรับ settings)
-router.put('/api/users/relatives/:id',
+router.put('/api/users/relatives/:id', authMiddleware, roleMiddleware(['admin']),
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
@@ -240,7 +241,7 @@ router.put('/api/users/relatives/:id',
 );
 
 // ✏️ Assign Nurse ให้ Elderly
-router.put('/api/elderly/assign-nurse', async (req, res) => {
+router.put('/api/elderly/assign-nurse',authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { elderlyId, nurseId } = req.body;
 
@@ -286,7 +287,7 @@ router.put('/api/elderly/assign-nurse', async (req, res) => {
   }
 });
 // ✏️ Deselect Nurse ออกจาก Elderly
-router.put('/api/elderly/deselect-nurse', async (req, res) => {
+router.put('/api/elderly/deselect-nurse',authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { elderlyId } = req.body;
 
@@ -326,7 +327,7 @@ router.put('/api/elderly/deselect-nurse', async (req, res) => {
 });
 
 // ===== Admin update =====
-router.put('/api/admins/:id', upload.single('profileImage'), async (req, res) => {
+router.put('/api/admins/:id', authMiddleware, roleMiddleware(['admin']), upload.single('profileImage'), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid admin id' });

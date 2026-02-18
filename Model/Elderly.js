@@ -109,8 +109,26 @@ const elderlySchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+
+   // 🔹 Base TDEE (คำนวณจาก weight/height/age)
+  baseTDEE: {
+    type: Number
+  },
+
+
+  // 🔹 New TDEE (BaseTDEE * activityFactor)
+  newTDEE: {
+    type: Number
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
+
+
 
 const Elderly = mongoose.model('Elderly', elderlySchema);
 

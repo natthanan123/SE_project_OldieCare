@@ -7,6 +7,7 @@ const Relative = require('../Model/Relative');
 const Medication = require('../MED/Medication');
 const Admin = require('../Model/Admin');
 
+
 // ==================== READ ROUTES ====================
 
 // ดึงข้อมูล Nurse ทั้งหมด

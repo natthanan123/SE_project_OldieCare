@@ -7,11 +7,11 @@ const Nurse = require('../Model/Nurse');
 const Elderly = require('../Model/Elderly');
 const Relative = require('../Model/Relative');
 const Admin = require('../Model/Admin');
-
+const { authMiddleware , roleMiddleware} = require('../Login/authMiddleware');
 // ==================== DELETE ROUTES ====================
 
 // 🗑️ ลบ licenseImage ของ Nurse
-router.delete('/api/users/nurses/:id/license-image', async (req, res) => {
+router.delete('/api/users/nurses/:id/license-image', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -50,7 +50,7 @@ router.delete('/api/users/nurses/:id/license-image', async (req, res) => {
 });
 
 // 🗑️ ลบ certificateImages ตัวใดตัวหนึ่งของ Nurse
-router.delete('/api/users/nurses/:id/certificate-image/:index', async (req, res) => {
+router.delete('/api/users/nurses/:id/certificate-image/:index', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id, index } = req.params;
     const imageIndex = Number(index);
@@ -91,7 +91,7 @@ router.delete('/api/users/nurses/:id/certificate-image/:index', async (req, res)
 });
 
 // 🗑️ ลบ Nurse (ลบ user ไปด้วย)
-router.delete('/api/users/nurses/:id', async (req, res) => {
+router.delete('/api/users/nurses/:id', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -123,7 +123,7 @@ router.delete('/api/users/nurses/:id', async (req, res) => {
 });
 
 // 🗑️ ลบ Elderly (ลบ user ไปด้วย)
-router.delete('/api/users/elderly/:id', async (req, res) => {
+router.delete('/api/users/elderly/:id', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -155,7 +155,7 @@ router.delete('/api/users/elderly/:id', async (req, res) => {
 });
 
 // 🗑️ ลบ Relative (ลบ user ไปด้วย)
-router.delete('/api/users/relatives/:id', async (req, res) => {
+router.delete('/api/users/relatives/:id', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -189,7 +189,7 @@ router.delete('/api/users/relatives/:id', async (req, res) => {
 
 
 // ===== Admin delete =====
-router.delete('/api/admins/:id', async (req, res) => {
+router.delete('/api/admins/:id', authMiddleware, roleMiddleware(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid admin id' });

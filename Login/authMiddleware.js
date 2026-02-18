@@ -1,6 +1,17 @@
 const { verifyToken } = require('./tokenHandler');
 
 const authMiddleware = (req, res, next) => {
+
+  // ✅ DEV BYPASS MODE
+  if (process.env.DEV_BYPASS_AUTH === 'true') {
+    req.user = {
+      userId: 'dev-user',
+      role: process.env.DEV_BYPASS_ROLE || 'admin'
+    };
+    return next();
+  }
+
+  
   try {
     const authHeader = req.headers.authorization;
 

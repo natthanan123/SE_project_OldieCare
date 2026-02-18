@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { upload } = require('../Utils/imageHandler');
-const { authMiddleware } = require('../Login/authMiddleware');
+const { authMiddleware , roleMiddleware} = require('../Login/authMiddleware');
 const User = require('../Model/User');
 const Admin = require('../Model/Admin');
 const Nurse = require('../Model/Nurse');
@@ -25,7 +25,7 @@ const safeParse = (data, defaultValue) => {
 
 // ================= UPLOAD NURSE DOCUMENTS =================
 router.post(
-  '/api/upload/nurse-documents',
+  '/api/upload/nurse-documents',authMiddleware, roleMiddleware(['admin', 'nurse']),
   upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'licenseImage', maxCount: 1 },
@@ -58,38 +58,9 @@ router.post(
   }
 );
 
-// ⏳ COMMENTED: Forgot password (generate reset token) - ระบบยังไม่เสร็จ
-// router.post('/forgot-password', async (req, res) => {
-//   try {
-//     const { email } = req.body;
-//     if (!email) return res.status(400).json({ message: 'Email is required' });
-//
-//     const user = await User.findOne({ email });
-//     if (!user) return res.status(404).json({ message: 'User not found' });
-//
-//     // generate token and store hashed value
-//     const token = crypto.randomBytes(20).toString('hex');
-//     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-//     const expireAt = Date.now() + 15 * 60 * 1000; // 15 minutes
-//
-//     await ResetPassword.findOneAndUpdate(
-//       { userId: user._id },
-//       { resetPasswordToken: hashedToken, resetPasswordExpire: new Date(expireAt) },
-//       { upsert: true, new: true, setDefaultsOnInsert: true }
-//     );
-//
-//     // In production you should email `token` to the user. For now return it in response for testing.
-//     res.json({ message: 'Reset token generated', resetToken: token, expiresAt: new Date(expireAt) });
-//
-//   } catch (error) {
-//     console.error('Forgot Password Error:', error);
-//     res.status(500).json({ message: 'Error generating reset token', error: error.message });
-//   }
-// });
-
 // 1. สร้าง Nurse
 router.post(
-  '/api/users/nurse',
+  '/api/users/nurse',authMiddleware, roleMiddleware(['admin']),
   upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'licenseImage', maxCount: 1 },
@@ -153,7 +124,7 @@ router.post(
 
 // 2. สร้าง Relative
 router.post(
-  '/api/users/relative',
+  '/api/users/relative',authMiddleware, roleMiddleware(['admin']),
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
@@ -202,7 +173,7 @@ router.post(
 
 // 3. สร้าง Elderly
 router.post(
-  '/api/users/elderly',
+  '/api/users/elderly',authMiddleware, roleMiddleware(['admin']),
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
@@ -215,6 +186,15 @@ router.post(
       const medications = safeParse(req.body.medications, []);
       const foodAllergies = safeParse(req.body.foodAllergies, []);
       const diseaseAllergies = safeParse(req.body.diseaseAllergies, []);
+
+      const numAge = Number(age) || 0;
+      const numWeight = Number(weight) || 0;
+      const numHeight = Number(height) || 0;
+
+      const BMR = (10 * numWeight) + (6.25 * numHeight) - (5 * numAge) + 5;
+      const baseTDEE = Math.round(BMR);
+
+      const newTDEE = baseTDEE;
 
       const user = new User({
         name,
@@ -239,7 +219,9 @@ router.post(
         medications,
         foodAllergies,
         diseaseAllergies,
-        assignedNurse: assignedNurse || null
+        assignedNurse: assignedNurse || null,
+        baseTDEE: baseTDEE,
+        newTDEE : newTDEE
       });
 
       const savedElderly = await elderly.save();
@@ -263,7 +245,7 @@ router.post(
 );
 
 //สร้างActivity
-router.post('/api/activity', authMiddleware, async (req, res) => {
+router.post('/api/activity', authMiddleware, roleMiddleware(['admin', 'nurse']), async (req, res) => {
     try {
         const { elderly, elderlyname, topic, description, startTime, endTime, date } = req.body;
 
@@ -297,7 +279,7 @@ router.post('/api/activity', authMiddleware, async (req, res) => {
 
 //สร้างIngredient
 
-router.post('/api/ingredient', authMiddleware, async (req, res) => {
+router.post('/api/ingredient', authMiddleware, roleMiddleware(['admin', 'nurse']), async (req, res) => {
     try {
         const { name, category, caloriesPerGram, unit, description } = req.body;
 
@@ -335,7 +317,7 @@ router.post('/api/ingredient', authMiddleware, async (req, res) => {
 });
 
 //สร้าง Medication
-router.post('/api/medication', authMiddleware, async (req, res) => {
+router.post('/api/medication', authMiddleware, roleMiddleware(['admin', 'nurse']), async (req, res) => {
     try {
         //รับค่าจากหน้าบ้าน (Frontend)
         const { elderly, name, quantity, unit, time, date } = req.body;
@@ -376,7 +358,7 @@ router.post('/api/medication', authMiddleware, async (req, res) => {
 // ===== Admin routes =====
 // สร้าง Admin
 router.post(
-  '/api/admins',
+  '/api/admins',authMiddleware, roleMiddleware(['admin']),
   upload.fields([{ name: 'profileImage', maxCount: 1 }]),
   async (req, res) => {
     try {
