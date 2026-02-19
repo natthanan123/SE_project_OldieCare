@@ -200,6 +200,7 @@ router.get('/api/users/elderly-card', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+/*
 //ดึงรายการยา
 router.get('/api/medication', async (req, res) => {
     try {
@@ -230,6 +231,57 @@ router.get('/api/medication', async (req, res) => {
         console.error("Get Medication Error:", error);
         res.status(500).json({ message: "Server Error", error: error.message });
     }
+});
+*/
+// ✅ 1. ดึงข้อมูลกิจกรรม (Activity) ทั้งหมด
+// ใช้สำหรับหน้า Home เพื่อคำนวณจำนวนงานค้างรวมของพยาบาล
+router.get('/api/activity/all', async (req, res) => {
+  try {
+    // ดึงงานทั้งหมดและเรียงตามวันที่และเวลา
+    const activities = await Activity.find().sort({ date: 1, startTime: 1 });
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("GET Activity Error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
+
+// ✅ 2. ดึงข้อมูลยา (Medication) ของผู้สูงอายุรายบุคคล
+// ใช้สำหรับหน้า NurseTasksScreen และการคำนวณงานป้อนยา
+router.get('/api/medication', async (req, res) => {
+  try {
+    const { elderlyId } = req.query; // รับ ID จาก query parameter
+
+    if (!elderlyId) {
+      return res.status(400).json({ message: "Elderly ID is required" });
+    }
+
+    // ค้นหายาที่ผูกกับ ID ผู้สูงอายุคนนั้น
+    const medications = await Medication.find({ elderly: elderlyId }).sort({ time: 1 });
+    res.status(200).json(medications);
+  } catch (error) {
+    console.error("GET Medication Error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
+
+// ✅ ดึงข้อมูล Activity ตามผู้สูงอายุรายบุคคล
+router.get('/api/activity', async (req, res) => {
+  try {
+    const { elderlyId } = req.query; // รับ ID จาก query
+
+    if (!elderlyId) {
+      return res.status(400).json({ message: "Elderly ID is required" });
+    }
+
+    const activities = await Activity.find({ elderly: elderlyId })
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json(activities);
+  } catch (error) {
+    console.error("GET Activity Error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
 });
 
 module.exports = router;
