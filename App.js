@@ -1,8 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import ElderlyScreen from './HOME_Old/ElderlyScreen';
-
+import ElderlyScreen from './ElderlyMobileApp/ElderlyScreen';
 
 const Stack = createNativeStackNavigator();
 
