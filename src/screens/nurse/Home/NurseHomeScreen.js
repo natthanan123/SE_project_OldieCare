@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
-// ✅ นำเข้า API สำหรับดึงกิจกรรมและยา
 import { getAssignedElderly, getActivities, getMedications } from '../../../services/apiClient'; 
 
 import HeaderGreeting from '../../../components/nurse/HeaderGreeting';   
@@ -11,44 +10,53 @@ import QuickActionButton from '../../../components/nurse/QuickActionButton';
 import LoadingView from '../../../components/common/LoadingView';
 import ErrorView from '../../../components/common/ErrorView';
 import { useFocusEffect } from '@react-navigation/native';
+// ✅ นำเข้า AsyncStorage เพื่อดึง ID ที่เก็บไว้ตอน Login
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function NurseHomeScreen({ navigation }) {
   const { greeting, sosAlert, loading: hookLoading, error: hookError } = useNurseHome();
 
-  // ID พยาบาลสำหรับการทดสอบ
-  const NURSE_ID = "698df967cbae21794053e7cc"; 
-
   const [assignedElders, setAssignedElders] = useState([]);
   const [totalPendingTasks, setTotalPendingTasks] = useState(0); 
   const [dbLoading, setDbLoading] = useState(true);
+  // ✅ เพิ่ม state เพื่อเก็บ Nurse ID จริงๆ ที่ดึงมาจากเครื่อง
+  const [activeNurseId, setActiveNurseId] = useState('');
 
   const fetchHomeData = async () => {
     try {
       setDbLoading(true);
       
-      // ✅ 1. ดึงข้อมูลพื้นฐานทั้งหมดพร้อมกันเพื่อประสิทธิภาพ
-      const [eldersData, allActivities, allMeds] = await Promise.all([
-        getAssignedElderly(NURSE_ID),
-        getActivities(),
-        getMedications()
-      ]);
+      // ✅ 1. ดึง Nurse ID จาก AsyncStorage (ที่บันทึกไว้ตอน Login สำเร็จ)
+      const savedId = await AsyncStorage.getItem('nurseId');
+      setActiveNurseId(savedId || 'Unknown');
 
+      if (!savedId) {
+        console.error("No Nurse ID found in storage");
+        setDbLoading(false);
+        return;
+      }
+
+      // ✅ 2. ดึงรายชื่อผู้สูงอายุโดยใช้ ID จริงจากระบบ Login
+      const eldersData = await getAssignedElderly(savedId);
       setAssignedElders(eldersData);
 
-      // ✅ 2. คำนวณจำนวนงานรวมที่ "ยังทำไม่เสร็จ"
-      const myElderIds = eldersData.map(e => e._id);
+      // ดึง ID ทั้งหมดของผู้สูงอายุที่เราดูแล
+      const myElderIds = eldersData.map(e => e.id || e._id);
       
-      // นับงานทั่วไปที่ไม่ใช่ 'Completed'
+      // ✅ 3. ดึงงานกิจกรรมและงานป้อนยามาคำนวณจำนวนงานค้าง
+      const allActivities = await getActivities();
+
       const pendingActivitiesCount = allActivities.filter(task => 
         myElderIds.includes(task.elderly) && task.status !== 'Completed'
       ).length;
 
-      // นับงานป้อนยาที่ไม่ใช่ 'Taken'
-      const pendingMedsCount = allMeds.filter(med => 
-        myElderIds.includes(med.elderly) && med.status !== 'Taken'
-      ).length;
+      let pendingMedsCount = 0;
+      for (const elderId of myElderIds) {
+          const meds = await getMedications(elderId); 
+          const unpaid = meds.filter(m => m.status !== 'Taken').length;
+          pendingMedsCount += unpaid;
+      }
 
-      // รวมจำนวนงานทั้งหมด
       setTotalPendingTasks(pendingActivitiesCount + pendingMedsCount);
 
     } catch (error) {
@@ -57,6 +65,15 @@ export default function NurseHomeScreen({ navigation }) {
     } finally {
       setDbLoading(false);
     }
+  };
+
+  const handleElderPress = (elder) => {
+    const id = elder.id || elder._id;
+    if (!id) return;
+    navigation.navigate('NurseTasks', {
+      elderId: id,
+      elderName: elder.name
+    });
   };
 
   useFocusEffect(
@@ -71,7 +88,6 @@ export default function NurseHomeScreen({ navigation }) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.headerContainer}>
-        {/* ✅ แสดงจำนวนงานรวมที่คำนวณได้จริงจาก MongoDB */}
         <HeaderGreeting
           text={greeting || 'Good Morning!'}
           taskCount={totalPendingTasks}
@@ -99,20 +115,18 @@ export default function NurseHomeScreen({ navigation }) {
         {assignedElders.length > 0 ? (
           assignedElders.map((elder) => (
             <ElderCard
-              key={elder._id} 
+              key={elder.id || elder._id} 
               name={elder.name || 'Unknown'}
               age={elder.age || 'N/A'}
-              conditions={elder.medicalConditions || []} 
-              onPress={() => navigation.navigate('NurseTasks', {
-                elderId: elder._id,
-                elderName: elder.name
-              })}
+              conditions={elder.conditions || []} 
+              onPress={() => handleElderPress(elder)} 
             />
           ))
         ) : (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>ไม่มีรายชื่อผู้สูงอายุที่ได้รับมอบหมาย</Text>
-            <Text style={styles.emptySubText}>ID: {NURSE_ID}</Text>
+            {/* ✅ แสดง ID จริงที่ใช้ดึงข้อมูล (ช่วยในการ Debug) */}
+            <Text style={styles.emptySubText}>Nurse ID: {activeNurseId}</Text>
           </View>
         )}
       </View>
@@ -141,6 +155,7 @@ export default function NurseHomeScreen({ navigation }) {
   );
 }
 
+// ... styles เหมือนเดิม ...
 const styles = StyleSheet.create({
   scrollContainer: { paddingBottom: 32, backgroundColor: '#F8F9FA' },
   headerContainer: {

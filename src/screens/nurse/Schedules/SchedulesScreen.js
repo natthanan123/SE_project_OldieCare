@@ -7,6 +7,7 @@ import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
 import { deleteTask } from '../../../services/nurseService';
 import LoadingView from '../../../components/common/LoadingView';
+import { deleteActivity, getActivities } from '../../../services/apiClient';
 
 export default function SchedulesScreen({ route, navigation }) {
   const isFocused = useIsFocused(); // ✅ ตรวจสอบว่าหน้าจอกำลังแสดงอยู่หรือไม่
@@ -56,8 +57,9 @@ export default function SchedulesScreen({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteTask(taskId);
-            loadTasks();
+            // ✅ เปลี่ยนมาใช้ deleteActivity ที่ชี้ไปยัง Render
+            await deleteActivity(taskId);
+            loadTasks(); // Refresh รายการ
           } catch (error) {
             Alert.alert("Error", "ไม่สามารถลบงานได้ในขณะนี้");
           }

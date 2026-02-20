@@ -1,35 +1,65 @@
-// src/services/apiClient.js
 import axios from 'axios';
 
-const IP_ADDRESS = '10.64.22.109'; 
-const BASE_URL = `http://${IP_ADDRESS}:5000/api`;
+// ✅ ประกาศ URL กลางที่ชี้ไปยัง Render
+const API_URL = "https://se-project-oldiecare.onrender.com";
 
 // --- ส่วนของ User & Nurse ---
+// ดึงข้อมูลโปรไฟล์พยาบาล
 export const getNurseProfile = async (id) => {
-    const response = await axios.get(`${BASE_URL}/users/nurses/${id}`);
+    // ใช้ path ตามที่ระบุใน Get.js ของเพื่อน
+    const response = await axios.get(`${API_URL}/api/users/nurses/${id}`);
     return response.data;
 };
 
-// --- ส่วนของผู้สูงอายุ ---
+// --- ส่วนของผู้สูงอายุ (My Patients) ---
+// ดึงรายชื่อผู้สูงอายุที่พยาบาลคนนี้ได้รับมอบหมาย
 export const getAssignedElderly = async (nurseId) => {
-    const response = await axios.get(`${BASE_URL}/elderlies/assigned/${nurseId}`);
-    return response.data;
-};
-
-// --- ส่วนของกิจกรรม (Activities) ---
-export const getActivities = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/activities`);
-        return response.data;
+        // ✅ เรียกข้อมูลจาก route หลักที่เพื่อนมี populate assignedNurse ไว้ให้
+        const response = await axios.get(`${API_URL}/api/users/elderly`); 
+        const allElderly = response.data;
+
+        // ✅ กรองข้อมูลเฉพาะที่ assignedNurse ID ตรงกับพยาบาลที่ Login อยู่
+        return allElderly
+            .filter(elder => {
+                const assignedId = elder.assignedNurse?._id || elder.assignedNurse;
+                return assignedId === nurseId;
+            })
+            .map(item => {
+                // ✅ แปลงข้อมูลให้อยู่ในรูปแบบที่หน้าจอ Home และ Card ต้องการ
+                const user = item.userId || {};
+                return {
+                    id: item._id,
+                    name: user.name || item.name,
+                    image: user.profileImage || null,
+                    age: item.age,
+                    conditions: item.medicalConditions || [],
+                    allergies: item.diseaseAllergies || [],
+                    room: item.room || "-"
+                };
+            });
     } catch (error) {
-        console.error("API Error (getActivities):", error);
+        console.error("API Error (getAssignedElderly):", error);
         throw error;
     }
 };
 
+// --- ส่วนของกิจกรรม (Activities) ---
+// 1. ดึงกิจกรรมทั้งหมด
+export const getActivities = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/api/activity`); 
+        return response.data;
+    } catch (error) {
+        console.warn("Temporary: Activity route not found, returning empty array.");
+        return [];
+    }
+};
+
+// 2. อัปเดตสถานะกิจกรรม (เช่น เปลี่ยนเป็น Completed)
 export const updateActivityStatus = async (activityId, status) => {
     try {
-        const response = await axios.put(`${BASE_URL}/activities/${activityId}`, { status });
+        const response = await axios.put(`${API_URL}/api/activity/${activityId}`, { status });
         return response.data;
     } catch (error) {
         console.error("API Error (updateActivityStatus):", error);
@@ -37,9 +67,10 @@ export const updateActivityStatus = async (activityId, status) => {
     }
 };
 
+// 3. สร้างกิจกรรมใหม่
 export const createActivity = async (activityData) => {
     try {
-        const response = await axios.post(`${BASE_URL}/activities`, activityData);
+        const response = await axios.post(`${API_URL}/api/activity`, activityData);
         return response.data;
     } catch (error) {
         console.error("API Error (createActivity):", error);
@@ -47,10 +78,10 @@ export const createActivity = async (activityData) => {
     }
 };
 
-// ✅ เพิ่มฟังก์ชันลบกิจกรรม (เรียกใช้ใน nurseService.deleteTask)
+// 4. ลบกิจกรรม
 export const deleteActivity = async (id) => {
     try {
-        const response = await axios.delete(`${BASE_URL}/activities/${id}`);
+        const response = await axios.delete(`${API_URL}/api/activity/${id}`);
         return response.data;
     } catch (error) {
         console.error("API Error (deleteActivity):", error);
@@ -59,15 +90,24 @@ export const deleteActivity = async (id) => {
 };
 
 // --- ส่วนของยา (Medications) ---
-export const getMedications = async () => {
-    const response = await axios.get(`${BASE_URL}/medications`);
-    return response.data;
+// 1. ดึงข้อมูลยาตาม ID ผู้สูงอายุ และวันที่
+export const getMedications = async (elderlyId, date) => {
+    try {
+        // ใช้ path /api/medication (เอกพจน์) ตาม Get.js ของเพื่อน
+        const response = await axios.get(`${API_URL}/api/medication`, {
+            params: { elderlyId, date }
+        });
+        return response.data;
+    } catch (error) {
+        console.warn("Temporary: Medication route not found, returning empty array.");
+        return [];
+    }
 };
 
-// ✅ เพิ่มฟังก์ชันบันทึกยาใหม่ (เรียกใช้ใน nurseService.addMedication)
+// 2. บันทึกข้อมูลยาใหม่
 export const createMedication = async (medData) => {
     try {
-        const response = await axios.post(`${BASE_URL}/medications`, medData);
+        const response = await axios.post(`${API_URL}/api/medication`, medData);
         return response.data;
     } catch (error) {
         console.error("API Error (createMedication):", error);
@@ -75,12 +115,30 @@ export const createMedication = async (medData) => {
     }
 };
 
+// 3. อัปเดตสถานะการทานยา (เช่น Taken)
 export const updateMedStatus = async (id, status) => {
-    const response = await axios.put(`${BASE_URL}/medications/${id}`, { status });
-    return response.data;
+    try {
+        const response = await axios.put(`${API_URL}/api/medication/${id}`, { status });
+        return response.data;
+    } catch (error) {
+        console.error("API Error (updateMedStatus):", error);
+        throw error;
+    }
 };
 
+// 4. ลบข้อมูลยา
 export const deleteMedication = async (id) => {
-    const response = await axios.delete(`${BASE_URL}/medications/${id}`);
-    return response.data;
+    try {
+        const response = await axios.delete(`${API_URL}/api/medication/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error("API Error (deleteMedication):", error);
+        throw error;
+    }
 };
+
+export const loginUser = async (credentials) => {
+    // ส่งไปยัง Route ที่เพื่อนคุณเขียนไว้
+    const response = await axios.post(`${API_URL}/api/auth/login`, credentials);
+    return response.data;
+  };

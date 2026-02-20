@@ -1,11 +1,10 @@
-// src/screens/nurse/Home/NurseTasksScreen.js
 import React, { useState, useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNurseTasks } from '../../../hooks/nurse/useNurseTasks';
 import { useNurseHome } from '../../../hooks/nurse/useNurseHome';
 
-// ✅ นำเข้า API สำหรับกิจกรรมและยา
+// ✅ นำเข้า API สำหรับจัดการข้อมูลจาก Render
 import { getActivities, updateActivityStatus, getMedications } from '../../../services/apiClient'; 
 
 import TaskItem from '../../../components/nurse/TaskItem';
@@ -24,22 +23,30 @@ export default function NurseTasksScreen({ route, navigation }) {
   const [meds, setMeds] = useState([]); 
   const [dbLoading, setDbLoading] = useState(true);
 
+  // ✅ ปรับปรุงฟังก์ชันโหลดข้อมูลให้รองรับการดึงยาแบบระบุ ID ผู้สูงอายุ
   const loadDataFromApi = async () => {
     try {
       setDbLoading(true);
+      
+      // ดึงข้อมูลพร้อมกัน (Activities ทั้งหมด และ Medications เฉพาะคนนี้)
       const [activitiesData, medsData] = await Promise.all([
         getActivities(),
-        getMedications()
+        getMedications(elderId) // ✅ ส่ง elderId ไปตามโครงสร้าง query ใน Get.js
       ]);
       
-      const elderTasks = activitiesData.filter(item => item.elderly === elderId);
-      const elderMeds = medsData.filter(item => item.elderly === elderId);
+      // กรองงานกิจกรรมให้เหลือเฉพาะของคุณยาย มีกรรณ
+      const elderTasks = activitiesData.filter(item => 
+        (item.elderly === elderId) || (item.elderly?._id === elderId)
+      );
       
       setActivities(elderTasks);
-      setMeds(elderMeds);
+      setMeds(medsData); // ข้อมูลยาที่ได้มาจะเป็นของคนนี้โดยเฉพาะอยู่แล้วจาก API
+
     } catch (error) {
       console.error("Load Data Error:", error);
-      Alert.alert("Error", "ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์ได้");
+      // คืนค่าว่างหากเกิด Error 404 เพื่อให้ UI ยังทำงานได้
+      setActivities([]);
+      setMeds([]);
     } finally {
       setDbLoading(false);
     }
@@ -51,6 +58,7 @@ export default function NurseTasksScreen({ route, navigation }) {
     }, [elderId])
   );
 
+  // ✅ ฟังก์ชันสลับสถานะงานกิจกรรม
   const handleToggleTask = async (taskId, currentStatus) => {
     try {
       const newStatus = currentStatus === 'Completed' ? 'Pending' : 'Completed';
@@ -65,12 +73,12 @@ export default function NurseTasksScreen({ route, navigation }) {
     }
   };
 
-  // ✅ 1. คำนวณจำนวนงานที่ "ยังค้างอยู่" (Pending Activities + Upcoming Meds)
+  // ✅ คำนวณจำนวนงานที่ "ยังค้างอยู่" โดยอ้างอิงสถานะจาก Schema ของเพื่อน
   const pendingActivitiesCount = activities.filter(t => t.status !== 'Completed').length;
-  const pendingMedsCount = meds.filter(m => m.status !== 'Taken').length;
+  const pendingMedsCount = meds.filter(m => m.status === 'Upcoming' || m.status !== 'Taken').length;
   const totalPending = pendingActivitiesCount + pendingMedsCount;
 
-  // ✅ 2. ค้นหายาตัวถัดไปที่ยังไม่ได้กิน
+  // ✅ ค้นหายาตัวถัดไปที่ต้องทาน (สถานะไม่ใช่ 'Taken')
   const nextMedication = meds.find(m => m.status !== 'Taken');
 
   if (initialLoading || dbLoading) return <LoadingView />;
@@ -81,7 +89,8 @@ export default function NurseTasksScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        {/* ✅ แสดงจำนวนงานที่เหลืออยู่จริงใน Header */}
+        
+        {/* แสดงชื่อผู้สูงอายุและจำนวนงานที่เหลือจริง */}
         <HeaderGreeting 
           text={`Tasks for ${elderName}`} 
           taskCount={totalPending} 
@@ -99,16 +108,16 @@ export default function NurseTasksScreen({ route, navigation }) {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Tasks</Text>
-          {/* ✅ แสดงจำนวนงานที่เหลืออยู่กำกับที่หัวข้อ Section */}
           <Text style={styles.taskCount}>{pendingActivitiesCount} Left</Text>
         </View>
 
+        {/* รายการงานกิจกรรมทั่วไป */}
         <View style={styles.card}>
           {activities.length > 0 ? (
             activities.map(task => (
               <TaskItem 
                 key={task._id} 
-                title={task.topic} 
+                title={task.topic} // ใช้ .topic ตาม Schema
                 time={task.startTime || '--:--'} 
                 completed={task.status === 'Completed'}
                 onToggle={() => handleToggleTask(task._id, task.status)} 
@@ -126,6 +135,7 @@ export default function NurseTasksScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* แถบแจ้งเตือนการทานยา (Medication Reminder) */}
         <View style={styles.reminderCard}>
           <View style={styles.reminderHeader}>
             <Ionicons name="medkit" size={20} color="white" />
@@ -134,6 +144,7 @@ export default function NurseTasksScreen({ route, navigation }) {
           <Text style={styles.reminderSub}>
             {nextMedication ? "Next dose scheduled" : "All medications taken"}
           </Text>
+          
           <View style={styles.medRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.medName}>
@@ -147,6 +158,7 @@ export default function NurseTasksScreen({ route, navigation }) {
             </View>
             <Text style={styles.medTime}>{nextMedication?.time || '--:--'}</Text>
           </View>
+
           <TouchableOpacity
             style={styles.manageBtn}
             onPress={() => navigation.navigate('Meds', { elderId, elderName })}
@@ -155,6 +167,7 @@ export default function NurseTasksScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* ส่วนปุ่มคำสั่งด่วน */}
         <View style={{ marginTop: 24 }}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionGrid}>
@@ -185,6 +198,7 @@ export default function NurseTasksScreen({ route, navigation }) {
   );
 }
 
+// ... styles คงเดิมตามที่คุณส่งมา ...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: { backgroundColor: '#2FA4E7', paddingBottom: 24, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 },

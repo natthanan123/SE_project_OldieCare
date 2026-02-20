@@ -1,8 +1,10 @@
+//src/screens/nurse/Schedules/AddTaskScreen.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { addTask } from '../../../services/nurseService';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { createActivity } from '../../../services/apiClient';
 
 export default function AddTaskScreen({ route, navigation }) {
     // รับค่า ID และ ชื่อ จากหน้าที่กดมา
@@ -27,14 +29,15 @@ export default function AddTaskScreen({ route, navigation }) {
         }
 
         try {
-            // ส่งข้อมูลให้ตรงกับ Schema ใน MongoDB
-            await addTask({
-                elderly: elderId,          // ต้องส่ง ID ไปเพื่อให้ DB เชื่อมโยงถูกคน
-                topic: title,              // ใน DB ใช้ฟิลด์ topic
+            // ✅ ส่งข้อมูลให้ตรงเป๊ะตาม router.post('/api/activity') ของเพื่อน
+            await createActivity({
+                elderly: elderId,          // ส่ง ID ผู้สูงอายุ
+                topic: title,              // ใช้ 'topic' ตาม Schema ของเพื่อน
                 description: description,
                 startTime: formatTimeThai(startTime),
                 endTime: formatTimeThai(endTime),
-                status: 'Upcoming'         // ค่าเริ่มต้น
+                date: new Date(),          // อย่าลืมส่งวันที่ปัจจุบันไปด้วย
+                status: 'Upcoming'         // สถานะเริ่มต้น
             });
 
             Alert.alert("สำเร็จ", "บันทึกงานเรียบร้อยแล้ว", [
