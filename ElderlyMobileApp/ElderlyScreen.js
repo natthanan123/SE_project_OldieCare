@@ -3,10 +3,15 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, SafeAreaVi
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
-const userData = {
-  name: "คุณสมหญิง",
-  date: "วันพุธที่ 20 มกราคม 2568",
-  image: require('../assets/OldProfile.jpg')
+
+//แบบจำลองก่อนนำไปดึงข้อมูลจริง
+const mockElderlyData = {
+  name: "คุณยาย มีปืน ในกางเกง",
+  date: "วันศุกร์ที่ 20 กุมภาพันธ์ 2569",
+  image: { uri: 'https://res.cloudinary.com/dpy0xskc5/image/upload/v1771526918/uploads/user-1771526916963-efizjm.jpg' },
+  medications: [
+    { name: "Amlodipine", dosage: "5 mg", frequency: "once daily" }
+  ]
 };
 
 export default function ElderlyScreen({ navigation }) {
@@ -28,13 +33,13 @@ export default function ElderlyScreen({ navigation }) {
   const Header = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerContent}>
-        <Image source={userData.image} style={styles.profileImage} />
+        <Image source={mockElderlyData.image} style={styles.profileImage} />
         <View>
           <Text style={styles.greetingText}>สวัสดีค่ะ</Text>
-          <Text style={styles.nameText}>{userData.name}</Text>
+          <Text style={styles.nameText}>{mockElderlyData.name}</Text>
         </View>
       </View>
-      <Text style={styles.dateText}>{userData.date}</Text>
+      <Text style={styles.dateText}>{mockElderlyData.date}</Text>
     </View>
   );
 
@@ -140,7 +145,6 @@ export default function ElderlyScreen({ navigation }) {
     const isExpanded = activeCard === 'meds';
     return (
       <View key="meds" style={styles.cardContainer}>
-        {/* Header ของการ์ด */}
         <TouchableOpacity 
           style={[styles.menuCard, styles.cardGreen, isExpanded && styles.expandedHeader]} 
           onPress={() => toggleCard('meds')}
@@ -151,49 +155,28 @@ export default function ElderlyScreen({ navigation }) {
           </View>
           <View style={styles.menuTextContainer}>
             <Text style={styles.menuTitle}>ยาของฉัน</Text>
-            <Text style={styles.menuSubtitle}>ถึงเวลา 14:00 น.</Text>
+            <Text style={styles.menuSubtitle}>มีรายการยาใหม่</Text>
           </View>
           <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={24} color="#4CAF50" />
         </TouchableOpacity>
 
-        {/* เนื้อหาที่จะโชว์เมื่อขยาย */}
         {isExpanded && (
           <View style={styles.expandedContent}>
-             <View style={styles.medItem}>
-                <Text style={styles.timeText}>08:00 เช้า</Text>
-                <View style={styles.medCardContent}>
-                     <View style={styles.medIconBig}><MaterialCommunityIcons name="pill" size={30} color="white" /></View>
-                     <View style={{flex:1}}>
-                        <Text style={styles.medName}>ยาความดัน A</Text>
-                        <Text style={styles.medDosage}>1 เม็ด (หลังอาหาร)</Text>
-                     </View>
-                     <View style={styles.takenTag}><Text style={styles.takenTagText}>กินแล้ว</Text></View>
-                </View>
-            </View>
-
-            <View style={styles.medItem}>
-                <Text style={styles.timeText}>12:00 เที่ยง</Text>
-                <View style={styles.medCardContent}>
-                     <View style={styles.medIconBig}><MaterialCommunityIcons name="pill" size={30} color="white" /></View>
-                     <View style={{flex:1}}>
-                        <Text style={styles.medName}>วิตามิน B</Text>
-                        <Text style={styles.medDosage}>1 เม็ด (หลังอาหาร)</Text>
-                     </View>
-                     <View style={styles.takenTag}><Text style={styles.takenTagText}>กินแล้ว</Text></View>
-                </View>
-            </View>
-
-             <View style={styles.medItem}>
-                <Text style={styles.timeText}>18:00 เย็น</Text>
-                <View style={[styles.medCardContent, {backgroundColor: 'white'}]}>
-                     <View style={[styles.medIconBig, {backgroundColor: '#1E88E5'}]}><MaterialCommunityIcons name="pill" size={30} color="white" /></View>
-                     <View style={{flex:1}}>
-                        <Text style={styles.medName}>ยาเบาหวาน</Text>
-                        <Text style={styles.medDosage}>1 เม็ด (ก่อนอาหาร)</Text>
-                     </View>
-                     <View style={styles.radioEmpty} />
-                </View>
-            </View>
+            {mockElderlyData.medications.map((med, index) => (
+              <View key={index} style={styles.medItem}>
+                 <Text style={styles.timeText}>08:00 เช้า (หลังอาหาร)</Text>
+                 <View style={styles.medCardContent}>
+                      <View style={styles.medIconBig}>
+                        <MaterialCommunityIcons name="pill" size={30} color="white" />
+                      </View>
+                      <View style={{flex:1}}>
+                         <Text style={styles.medName}>{med.name}</Text>
+                         <Text style={styles.medDosage}>{med.dosage} ({med.frequency})</Text>
+                      </View>
+                      <View style={styles.radioEmpty} />
+                 </View>
+             </View>
+            ))}
           </View>
         )}
       </View>
