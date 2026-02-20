@@ -4,19 +4,20 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import { StatusBar } from 'expo-status-bar';
 
 export default function ElderlyScreen({ navigation }) {
+  // state: การ์ดไหนขยายอยู่ และสถานะ Modal
   const [activeCard, setActiveCard] = useState(null); 
   const [showCaregiverModal, setShowCaregiverModal] = useState(false);
 
+  // State สำหรับเก็บข้อมูลจาก Backend
   const [elderlyData, setElderlyData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🟢 ดึงข้อมูล 3 อย่าง: โปรไฟล์ + ยา + กิจกรรม
+  // 🟢 ฟังก์ชันดึงข้อมูล API 3 เส้น (พร้อมรอเพื่อนแก้ Backend)
   useEffect(() => {
     const fetchElderlyData = async () => {
       try {
-        const elderlyId = "69975b08e870b34c438a7404"; // จำลอง ID คุณยายมีปืน
+        const elderlyId = "69975b08e870b34c438a7404"; // ID คุณยายมีปืน
 
-        // 🚀 เพิ่ม &t=${Date.now()} ต่อท้าย URL เพื่อป้องกันแอปแอบจำข้อมูลเก่า (Cache Busting)
         const [profileRes, medsRes, actRes] = await Promise.all([
           fetch(`https://se-project-oldiecare.onrender.com/api/users/elderly/${elderlyId}`),
           fetch(`https://se-project-oldiecare.onrender.com/api/medication?elderlyId=${elderlyId}&t=${Date.now()}`),
@@ -27,17 +28,12 @@ export default function ElderlyScreen({ navigation }) {
         const medsData = await medsRes.json();
         const actData = await actRes.json();
 
-        // 🕵️‍♂️ สายสืบ Console: แอบดูว่า Backend ส่งอะไรมาให้แอปเราบ้าง!
-        console.log("📌 ข้อมูลกิจกรรมที่ Backend ส่งมา:", actData);
-
-        // 🛡️ เผื่อ Backend ห่อข้อมูลมาใน { data: [...] } หรือส่งมาเป็น Array ตรงๆ
+        // ดักจับรูปแบบข้อมูลกิจกรรม
         let activitiesList = [];
         if (Array.isArray(actData)) {
             activitiesList = actData;
         } else if (actData && Array.isArray(actData.data)) {
             activitiesList = actData.data;
-        } else {
-            console.log("🚨 เอ๊ะ! ข้อมูลกิจกรรมผิดปกติ:", actData);
         }
 
         setElderlyData({
@@ -47,7 +43,7 @@ export default function ElderlyScreen({ navigation }) {
             ? { uri: profileData.userId.profileImage } 
             : require('../assets/OldProfile.jpg'),
           medications: Array.isArray(medsData) ? medsData : [],
-          activities: activitiesList // ใช้ตัวแปรใหม่ที่ดัก Error ไว้แล้ว
+          activities: activitiesList
         });
 
       } catch (error) {
@@ -60,6 +56,16 @@ export default function ElderlyScreen({ navigation }) {
     fetchElderlyData();
   }, []);
 
+  // 🟢 ฟังก์ชันเปิด/ปิดการ์ด
+  const toggleCard = (cardName) => {
+    if (activeCard === cardName) {
+      setActiveCard(null);
+    } else {
+      setActiveCard(cardName);
+    }
+  };
+
+  // 🟢 Header
   const Header = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerContent}>
@@ -98,7 +104,7 @@ export default function ElderlyScreen({ navigation }) {
     </View>
   );
 
-  // 🟢 การ์ดกิจกรรม (อัปเดตให้รองรับตอนไม่มีข้อมูล)
+  // 🟢 การ์ดกิจกรรม
   const renderActivitiesCard = () => {
     const isExpanded = activeCard === 'activities';
     const acts = elderlyData.activities || [];
@@ -131,7 +137,6 @@ export default function ElderlyScreen({ navigation }) {
                             <MaterialCommunityIcons name="clipboard-text" size={24} color="white" />
                         </View>
                         <View style={{flex:1}}>
-                            {/* แก้ตรงนี้: ใช้ topic และ description ให้ตรงกับ Backend */}
                             <Text style={styles.actTitle}>{act.topic || "กิจกรรม"}</Text>
                             <Text style={styles.actSub}>{act.description || "-"}</Text>
                         </View>
@@ -184,7 +189,7 @@ export default function ElderlyScreen({ navigation }) {
                         </View>
                         <View style={{flex:1}}>
                            <Text style={styles.medName}>{med.name}</Text>
-                           <Text style={styles.medDosage}>{med.dosage?.amount || ''} {med.dosage?.unit || ''}</Text>
+                           <Text style={styles.medDosage}>{med.dosage?.amount || med.quantity || ''} {med.dosage?.unit || med.unit || ''}</Text>
                         </View>
                         <View style={styles.radioEmpty} />
                    </View>
@@ -287,6 +292,7 @@ export default function ElderlyScreen({ navigation }) {
     return sections.map(s => s.component);
   };
 
+  // 🟢 หน้าจอ Loading
   if (isLoading || !elderlyData) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' }}>
