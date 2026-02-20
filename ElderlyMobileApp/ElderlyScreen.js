@@ -1,45 +1,75 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, SafeAreaView, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Image, SafeAreaView, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 
-
-//แบบจำลองก่อนนำไปดึงข้อมูลจริง
-const mockElderlyData = {
-  name: "คุณยาย มีปืน ในกางเกง",
-  date: "วันศุกร์ที่ 20 กุมภาพันธ์ 2569",
-  image: { uri: 'https://res.cloudinary.com/dpy0xskc5/image/upload/v1771526918/uploads/user-1771526916963-efizjm.jpg' },
-  medications: [
-    { name: "Amlodipine", dosage: "5 mg", frequency: "once daily" }
-  ]
-};
-
 export default function ElderlyScreen({ navigation }) {
-  // state:การ์ดไหนขยายอยู่
   const [activeCard, setActiveCard] = useState(null); 
   const [showCaregiverModal, setShowCaregiverModal] = useState(false);
 
-  // ฟังก์ชันสลับการ์ด
-  const toggleCard = (cardName) => {
-    if (activeCard === cardName) {
-      setActiveCard(null);
-    } else {
-      setActiveCard(cardName);
-    }
-  };
+  const [elderlyData, setElderlyData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // 🟢 ดึงข้อมูล 3 อย่าง: โปรไฟล์ + ยา + กิจกรรม
+  useEffect(() => {
+    const fetchElderlyData = async () => {
+      try {
+        const elderlyId = "69975b08e870b34c438a7404"; // จำลอง ID คุณยายมีปืน
 
-  // Components ส่วนประกอบย่อย
+        // 🚀 เพิ่ม &t=${Date.now()} ต่อท้าย URL เพื่อป้องกันแอปแอบจำข้อมูลเก่า (Cache Busting)
+        const [profileRes, medsRes, actRes] = await Promise.all([
+          fetch(`https://se-project-oldiecare.onrender.com/api/users/elderly/${elderlyId}`),
+          fetch(`https://se-project-oldiecare.onrender.com/api/medication?elderlyId=${elderlyId}&t=${Date.now()}`),
+          fetch(`https://se-project-oldiecare.onrender.com/api/activity?elderlyId=${elderlyId}&t=${Date.now()}`)
+        ]);
+
+        const profileData = await profileRes.json();
+        const medsData = await medsRes.json();
+        const actData = await actRes.json();
+
+        // 🕵️‍♂️ สายสืบ Console: แอบดูว่า Backend ส่งอะไรมาให้แอปเราบ้าง!
+        console.log("📌 ข้อมูลกิจกรรมที่ Backend ส่งมา:", actData);
+
+        // 🛡️ เผื่อ Backend ห่อข้อมูลมาใน { data: [...] } หรือส่งมาเป็น Array ตรงๆ
+        let activitiesList = [];
+        if (Array.isArray(actData)) {
+            activitiesList = actData;
+        } else if (actData && Array.isArray(actData.data)) {
+            activitiesList = actData.data;
+        } else {
+            console.log("🚨 เอ๊ะ! ข้อมูลกิจกรรมผิดปกติ:", actData);
+        }
+
+        setElderlyData({
+          name: profileData.userId?.name || "ไม่ระบุชื่อ",
+          date: "วันศุกร์ที่ 20 กุมภาพันธ์ 2569", 
+          image: profileData.userId?.profileImage 
+            ? { uri: profileData.userId.profileImage } 
+            : require('../assets/OldProfile.jpg'),
+          medications: Array.isArray(medsData) ? medsData : [],
+          activities: activitiesList // ใช้ตัวแปรใหม่ที่ดัก Error ไว้แล้ว
+        });
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchElderlyData();
+  }, []);
+
   const Header = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerContent}>
-        <Image source={mockElderlyData.image} style={styles.profileImage} />
+        <Image source={elderlyData.image} style={styles.profileImage} />
         <View>
           <Text style={styles.greetingText}>สวัสดีค่ะ</Text>
-          <Text style={styles.nameText}>{mockElderlyData.name}</Text>
+          <Text style={styles.nameText}>{elderlyData.name}</Text>
         </View>
       </View>
-      <Text style={styles.dateText}>{mockElderlyData.date}</Text>
+      <Text style={styles.dateText}>{elderlyData.date}</Text>
     </View>
   );
 
@@ -68,12 +98,13 @@ export default function ElderlyScreen({ navigation }) {
     </View>
   );
 
-  //กิจกรรม
+  // 🟢 การ์ดกิจกรรม (อัปเดตให้รองรับตอนไม่มีข้อมูล)
   const renderActivitiesCard = () => {
     const isExpanded = activeCard === 'activities';
+    const acts = elderlyData.activities || [];
+
     return (
       <View key="activities" style={styles.cardContainer}>
-        {/* Header ของการ์ด */}
         <TouchableOpacity 
           style={[styles.menuCard, styles.cardBlue, isExpanded && styles.expandedHeader]} 
           onPress={() => toggleCard('activities')}
@@ -84,65 +115,46 @@ export default function ElderlyScreen({ navigation }) {
           </View>
           <View style={styles.menuTextContainer}>
             <Text style={styles.menuTitle}>กิจกรรมวันนี้</Text>
-            <Text style={styles.menuSubtitle}>3 รายการ</Text>
+            <Text style={styles.menuSubtitle}>{acts.length > 0 ? `${acts.length} รายการ` : 'ไม่มีกิจกรรม'}</Text>
           </View>
           <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={24} color="#007AFF" />
         </TouchableOpacity>
 
-        {/* เนื้อหาที่จะโชว์เมื่อขยาย (Dropdown Content) */}
         {isExpanded && (
           <View style={styles.expandedContent}>
-            {/* Item 1 */}
-            <View style={styles.activityItem}>
-                <Text style={styles.timeText}>08:00 เช้า</Text>
-                <View style={styles.activityCardContent}>
-                    <View style={styles.activityIconCircle}>
-                        <MaterialCommunityIcons name="food-variant" size={24} color="white" />
+            {acts.length > 0 ? (
+              acts.map((act, index) => (
+                <View key={index} style={styles.activityItem}>
+                    <Text style={styles.timeText}>{act.startTime || "เวลาไม่ระบุ"}</Text>
+                    <View style={styles.activityCardContent}>
+                        <View style={styles.activityIconCircle}>
+                            <MaterialCommunityIcons name="clipboard-text" size={24} color="white" />
+                        </View>
+                        <View style={{flex:1}}>
+                            {/* แก้ตรงนี้: ใช้ topic และ description ให้ตรงกับ Backend */}
+                            <Text style={styles.actTitle}>{act.topic || "กิจกรรม"}</Text>
+                            <Text style={styles.actSub}>{act.description || "-"}</Text>
+                        </View>
+                        <View style={styles.radioEmpty} />
                     </View>
-                    <View style={{flex:1}}>
-                        <Text style={styles.actTitle}>ทานอาหารเช้า</Text>
-                        <Text style={styles.actSub}>ข้าวมันไก่, ยาหลังอาหาร</Text>
-                    </View>
-                    <Ionicons name="checkmark-circle" size={28} color="#4CAF50" />
                 </View>
-            </View>
-            {/* Item 2 */}
-            <View style={styles.activityItem}>
-                <Text style={styles.timeText}>15:00 บ่าย</Text>
-                <View style={[styles.activityCardContent, {borderColor: '#007AFF', borderWidth: 1}]}>
-                    <View style={[styles.activityIconCircle, {backgroundColor: '#007AFF'}]}>
-                        <MaterialCommunityIcons name="arm-flex" size={24} color="white" />
-                    </View>
-                    <View style={{flex:1}}>
-                        <Text style={styles.actTitle}>กายภาพบำบัด</Text>
-                        <Text style={styles.actSub}>15 นาที (แขน, ขา)</Text>
-                    </View>
-                    <View style={styles.statusBadge}><Text style={styles.statusText}>กำลังทำ</Text></View>
-                </View>
-            </View>
-            {/* Item 3 */}
-            <View style={styles.activityItem}>
-                <Text style={styles.timeText}>18:00 เย็น</Text>
-                <View style={[styles.activityCardContent, {opacity: 0.6}]}>
-                    <View style={[styles.activityIconCircle, {backgroundColor: '#1E88E5'}]}>
-                        <MaterialCommunityIcons name="bed" size={24} color="white" />
-                    </View>
-                    <View style={{flex:1}}>
-                        <Text style={styles.actTitle}>พักผ่อน</Text>
-                        <Text style={styles.actSub}>ดูโทรทัศน์, ฟังเพลง</Text>
-                    </View>
-                    <View style={styles.radioEmpty} />
-                </View>
-            </View>
+              ))
+            ) : (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#888', fontSize: 16 }}>วันนี้ไม่มีกิจกรรมที่ต้องทำค่ะ 🌟</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
     );
   };
 
-  //ยา
+  // 🟢 การ์ดยา
   const renderMedsCard = () => {
     const isExpanded = activeCard === 'meds';
+    const meds = elderlyData.medications || [];
+
     return (
       <View key="meds" style={styles.cardContainer}>
         <TouchableOpacity 
@@ -155,36 +167,41 @@ export default function ElderlyScreen({ navigation }) {
           </View>
           <View style={styles.menuTextContainer}>
             <Text style={styles.menuTitle}>ยาของฉัน</Text>
-            <Text style={styles.menuSubtitle}>มีรายการยาใหม่</Text>
+            <Text style={styles.menuSubtitle}>{meds.length > 0 ? `มีรายการยา ${meds.length} รายการ` : 'ไม่มียาที่ต้องทาน'}</Text>
           </View>
           <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={24} color="#4CAF50" />
         </TouchableOpacity>
 
         {isExpanded && (
           <View style={styles.expandedContent}>
-            {mockElderlyData.medications.map((med, index) => (
-              <View key={index} style={styles.medItem}>
-                 <Text style={styles.timeText}>08:00 เช้า (หลังอาหาร)</Text>
-                 <View style={styles.medCardContent}>
-                      <View style={styles.medIconBig}>
-                        <MaterialCommunityIcons name="pill" size={30} color="white" />
-                      </View>
-                      <View style={{flex:1}}>
-                         <Text style={styles.medName}>{med.name}</Text>
-                         <Text style={styles.medDosage}>{med.dosage} ({med.frequency})</Text>
-                      </View>
-                      <View style={styles.radioEmpty} />
-                 </View>
-             </View>
-            ))}
+            {meds.length > 0 ? (
+              meds.map((med, index) => (
+                <View key={index} style={styles.medItem}>
+                   <Text style={styles.timeText}>{med.time || "08:00 เช้า"} ({med.frequency || "-"})</Text>
+                   <View style={styles.medCardContent}>
+                        <View style={styles.medIconBig}>
+                          <MaterialCommunityIcons name="pill" size={30} color="white" />
+                        </View>
+                        <View style={{flex:1}}>
+                           <Text style={styles.medName}>{med.name}</Text>
+                           <Text style={styles.medDosage}>{med.dosage?.amount || ''} {med.dosage?.unit || ''}</Text>
+                        </View>
+                        <View style={styles.radioEmpty} />
+                   </View>
+               </View>
+              ))
+            ) : (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text style={{ color: '#888', fontSize: 16 }}>วันนี้ไม่มียาที่ต้องทานค่ะ แข็งแรงมาก! 💪</Text>
+              </View>
+            )}
           </View>
         )}
       </View>
     );
   };
 
-  //ผู้ดูแล
-const renderCaregiverCard = () => (
+  const renderCaregiverCard = () => (
     <View key="caregiver" style={styles.cardContainer}>
       <TouchableOpacity style={[styles.menuCard, styles.cardPurple]} onPress={() => setShowCaregiverModal(true)}>
         <View style={styles.menuIconCircle}>
@@ -199,7 +216,6 @@ const renderCaregiverCard = () => (
     </View>
   );
 
-  //SOS
   const renderSOSCard = () => (
     <View key="sos" style={styles.cardContainer}>
       <TouchableOpacity style={[styles.menuCard, styles.cardRed]} onPress={() => setActiveCard('sos')}>
@@ -214,7 +230,6 @@ const renderCaregiverCard = () => (
     </View>
   );
 
-  // --- SOS Full Screen ---
   const SOSFullView = () => (
     <View style={styles.sosContainer}>
         <Text style={styles.sosHeaderText}>EMERGENCY</Text>
@@ -232,7 +247,6 @@ const renderCaregiverCard = () => (
     </View>
   );
 
-  // --- Modal Caregiver ---
   const CaregiverModal = () => (
     <Modal animationType="fade" transparent={true} visible={showCaregiverModal} onRequestClose={() => setShowCaregiverModal(false)}>
         <View style={styles.modalOverlay}>
@@ -254,9 +268,7 @@ const renderCaregiverCard = () => (
     </Modal>
   );
 
-  // Main Logic
   const renderContent = () => {
-
     let sections = [
       { key: 'activities', component: renderActivitiesCard() },
       { key: 'meds', component: renderMedsCard() },
@@ -264,7 +276,6 @@ const renderCaregiverCard = () => (
       { key: 'sos', component: renderSOSCard() },
     ];
 
-    //Activeให้ย้ายไปตัวแรกสุด
     if (activeCard && activeCard !== 'sos') {
       const activeIndex = sections.findIndex(s => s.key === activeCard);
       if (activeIndex > -1) {
@@ -275,6 +286,15 @@ const renderCaregiverCard = () => (
 
     return sections.map(s => s.component);
   };
+
+  if (isLoading || !elderlyData) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAFAFA' }}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10, color: '#555' }}>กำลังดึงข้อมูลคุณยาย...</Text>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -298,34 +318,25 @@ const renderCaregiverCard = () => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFAFA' },
-  // Header
   headerContainer: { backgroundColor: '#007AFF', paddingTop: 50, paddingBottom: 25, paddingHorizontal: 20, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, marginBottom: 10 },
   headerContent: { flexDirection: 'row', alignItems: 'center' },
   profileImage: { width: 55, height: 55, borderRadius: 27.5, marginRight: 15, borderWidth: 2, borderColor: 'white' },
   greetingText: { color: 'rgba(255,255,255,0.9)', fontSize: 14 },
   nameText: { color: 'white', fontSize: 22, fontWeight: 'bold' },
   dateText: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 8 },
-
-  // Cards
   contentContainer: { padding: 20 },
   cardContainer: { marginBottom: 15 },
   menuCard: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 16, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  expandedHeader: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 }, // ถ้าขยายอยู่ ลบโค้งล่างออก
-  
+  expandedHeader: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, marginBottom: 0 },
   cardBlue: { backgroundColor: '#E3F2FD' },
   cardGreen: { backgroundColor: '#E8F5E9' },
   cardPurple: { backgroundColor: '#F3E5F5' },
   cardRed: { backgroundColor: '#FF3B30' },
-  
   menuIconCircle: { width: 45, height: 45, borderRadius: 22.5, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
   menuTextContainer: { flex: 1 },
   menuTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   menuSubtitle: { fontSize: 13, color: '#666', marginTop: 2 },
-
-  // Expanded Content Area
   expandedContent: { backgroundColor: 'white', padding: 15, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, marginBottom: 0, elevation: 2, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  
-  // Activities Item Style
   activityItem: { marginBottom: 20 },
   timeText: { fontSize: 14, fontWeight: 'bold', color: '#555', marginBottom: 5 },
   activityCardContent: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 15, borderWidth: 1, borderColor: '#eee' },
@@ -334,8 +345,6 @@ const styles = StyleSheet.create({
   actSub: { fontSize: 12, color: '#777' },
   statusBadge: { backgroundColor: '#007AFF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-
-  // Meds Item Style
   medItem: { marginBottom: 15 },
   medCardContent: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F8E9', padding: 15, borderRadius: 15 },
   medIconBig: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
@@ -344,8 +353,6 @@ const styles = StyleSheet.create({
   takenTag: { backgroundColor: '#1565C0', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 5 },
   takenTagText: { color: 'white', fontSize: 12 },
   radioEmpty: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#ccc', backgroundColor: 'white' },
-
-  // SOS Full Screen
   sosContainer: { flex: 1, backgroundColor: '#B71C1C', alignItems: 'center', justifyContent: 'center' },
   sosHeaderText: { color: 'white', fontSize: 24, letterSpacing: 2, marginBottom: 50, opacity: 0.9 },
   sosMainButton: { alignItems: 'center', justifyContent: 'center' },
@@ -355,8 +362,6 @@ const styles = StyleSheet.create({
   sosWaitText: { color: 'white', textAlign: 'center', marginTop: 40, fontSize: 16, lineHeight: 24, opacity: 0.8 },
   sosCancelButton: { marginTop: 60, paddingVertical: 10, paddingHorizontal: 30, backgroundColor: 'white', borderRadius: 20 },
   sosCancelText: { color: '#B71C1C', fontSize: 16, fontWeight: 'bold' },
-
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '85%', backgroundColor: '#F3E5F5', borderRadius: 20, padding: 20 },
   modalHeader: { flexDirection: 'row', backgroundColor: '#9C27B0', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 20 },
@@ -366,8 +371,6 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 10 },
   actionCancel: { color: '#666', fontSize: 16 },
   actionConfirm: { color: '#9C27B0', fontSize: 16, fontWeight: 'bold' },
-
-  // Bottom Nav
   bottomNav: { flexDirection: 'row', backgroundColor: 'white', paddingVertical: 10, paddingBottom: 20, justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: '#eee' },
   navItem: { alignItems: 'center' },
   navIconBg: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
