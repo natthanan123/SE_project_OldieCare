@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../Model/User');
 const { validatePasswordSchema } = require('../Utils/validators');
-
+const Admin = require('../Model/Admin');
 /**
  * POST /api/reset-password
  * body:
