@@ -32,7 +32,8 @@ router.post('/api/reset-password', async (req, res) => {
     const user = await User.findOne({
       $or: [
         { email: identifier },
-        { name: identifier } // name = username
+        { name: identifier }, // name = username
+        {username: identifier}
       ]
     }).select('+password');
 
