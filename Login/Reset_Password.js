@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../Model/User');
-const { validatePasswordSchema } = require('../Utils/validators');
 const Admin = require('../Model/Admin');
+const { validatePasswordSchema } = require('../Utils/validators');
+
 /**
  * POST /api/reset-password
  * body:
@@ -28,27 +29,41 @@ router.post('/api/reset-password', async (req, res) => {
       });
     }
 
-    // หา user จาก username หรือ email
-    const user = await User.findOne({
+    // หาใน User ก่อน
+    let account = await User.findOne({
       $or: [
         { email: identifier },
-        { name: identifier }, // name = username
-        {username: identifier}
+        { name: identifier }
       ]
     }).select('+password');
 
-    if (!user) {
+    let role = "user";
+
+    // ถ้าไม่เจอใน User → หาใน Admin
+    if (!account) {
+      account = await Admin.findOne({
+        $or: [
+          { email: identifier },
+          { username: identifier },
+        ]
+      }).select('+password');
+
+      role = "admin";
+    }
+
+    // ถ้าไม่เจอทั้ง User และ Admin
+    if (!account) {
       return res.status(404).json({
-        message: "User not found (invalid email or username)"
+        message: "User or Admin not found"
       });
     }
 
-    // ตั้งรหัสใหม่
-    user.password = newPassword; // pre('save') จะ hash ให้
-    await user.save();
+    // ตั้งรหัสใหม่ (pre('save') จะ hash ให้)
+    account.password = newPassword;
+    await account.save();
 
     res.json({
-      message: "Password reset successfully"
+      message: `Password reset successfully for ${role}`
     });
 
   } catch (error) {
@@ -61,4 +76,3 @@ router.post('/api/reset-password', async (req, res) => {
 });
 
 module.exports = router;
-
